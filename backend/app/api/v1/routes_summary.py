@@ -26,7 +26,5 @@ async def summary_financial(
     user_id: str = Depends(get_current_user_id),
     repository: EventRepository = Depends(get_event_repository),
 ) -> SummaryFinancialResponse:
-    data = await repository.get_financial_summary(
-        user_id=user_id, next_years=next_years
-    )
+    data = await repository.get_financial_summary(user_id=user_id, next_years=next_years)
     return SummaryFinancialResponse(**data)

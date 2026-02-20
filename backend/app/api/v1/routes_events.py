@@ -1,13 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.api.dependencies import get_current_user_id
-from app.models.event import (
-    Event,
-    EventCreate,
-    EventListResponse,
-    EventStatus,
-    EventUpdate,
-)
+from app.models.event import Event, EventCreate, EventListResponse, EventStatus, EventUpdate
 from app.repositories.events import EventRepository, SortBy, SortOrder
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -60,9 +54,7 @@ async def get_event(
 ) -> Event:
     event = await repository.get_event(user_id, event_id)
     if event is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Event not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     return event
 
 
@@ -75,9 +67,7 @@ async def update_event(
 ) -> Event:
     event = await repository.update_event(user_id, event_id, payload)
     if event is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Event not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     return event
 
 
@@ -89,6 +79,4 @@ async def delete_event(
 ) -> None:
     deleted = await repository.delete_event(user_id, event_id)
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Event not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
