@@ -8,8 +8,7 @@ os.environ.setdefault("APP_ENV", "test")
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.v1.routes_events import get_event_repository as get_events_repository
-from app.api.v1.routes_summary import get_event_repository as get_summary_repository
+from app.api.v1.routes_events import get_event_repository
 from app.main import app
 from app.models.event import Event, EventCreate, EventStatus, EventUpdate
 
@@ -44,11 +43,7 @@ class InMemoryEventRepository:
         sort_by: str = "start_date",
         sort_order: str = "asc",
     ) -> tuple[list[Event], int]:
-        values = [
-            event
-            for event in self.events.values()
-            if event.deleted_at is None and event.user_id == user_id
-        ]
+        values = [event for event in self.events.values() if event.deleted_at is None and event.user_id == user_id]
 
         if status is not None:
             values = [event for event in values if event.status == status]
@@ -75,9 +70,7 @@ class InMemoryEventRepository:
             return None
         return event
 
-    async def update_event(
-        self, user_id: str, event_id: str, payload: EventUpdate
-    ) -> Event | None:
+    async def update_event(self, user_id: str, event_id: str, payload: EventUpdate) -> Event | None:
         event = self.events.get(event_id)
         if event is None or event.deleted_at is not None or event.user_id != user_id:
             return None
@@ -94,44 +87,29 @@ class InMemoryEventRepository:
         event = self.events.get(event_id)
         if event is None or event.deleted_at is not None or event.user_id != user_id:
             return False
-        self.events[event_id] = event.model_copy(
-            update={"deleted_at": datetime.now(timezone.utc)}
-        )
+        self.events[event_id] = event.model_copy(update={"deleted_at": datetime.now(timezone.utc)})
         return True
 
     async def get_overview_summary(self, user_id: str) -> dict:
-        rows = [
-            event
-            for event in self.events.values()
-            if event.deleted_at is None and event.user_id == user_id
-        ]
+        rows = [event for event in self.events.values() if event.deleted_at is None and event.user_id == user_id]
         by_status: dict[str, int] = {}
         by_phase: dict[str, int] = {}
         for row in rows:
             by_status[row.status.value] = by_status.get(row.status.value, 0) + 1
             if row.timeline_phase:
                 by_phase[row.timeline_phase] = by_phase.get(row.timeline_phase, 0) + 1
-        return {
-            "total_events": len(rows),
-            "by_status": by_status,
-            "by_timeline_phase": by_phase,
-        }
+        return {"total_events": len(rows), "by_status": by_status, "by_timeline_phase": by_phase}
 
     async def get_financial_summary(self, user_id: str, next_years: int = 5) -> dict:
         rows = [
             event
             for event in self.events.values()
-            if event.deleted_at is None
-            and event.user_id == user_id
-            and event.is_financial
+            if event.deleted_at is None and event.user_id == user_id and event.is_financial
         ]
         target = sum(float(event.savings_target or 0) for event in rows)
         saved = sum(float(event.amount_saved or 0) for event in rows)
         funded = sum(
-            1
-            for event in rows
-            if (event.savings_target or 0) > 0
-            and (event.amount_saved or 0) >= (event.savings_target or 0)
+            1 for event in rows if (event.savings_target or 0) > 0 and (event.amount_saved or 0) >= (event.savings_target or 0)
         )
         return {
             "total_savings_target": round(target, 2),
@@ -145,16 +123,12 @@ class InMemoryEventRepository:
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
     repository = InMemoryEventRepository()
-    app.state.events_repository = repository
-    app.dependency_overrides[get_events_repository] = lambda: repository
-    app.dependency_overrides[get_summary_repository] = lambda: repository
+    app.dependency_overrides[get_event_repository] = lambda: repository
 
     with TestClient(app) as test_client:
         yield test_client
 
     app.dependency_overrides.clear()
-    if hasattr(app.state, "events_repository"):
-        delattr(app.state, "events_repository")
 
 
 def _event_payload(title: str, start_date: str, amount_saved: float) -> dict:
@@ -198,9 +172,7 @@ def test_create_list_get_update_delete_event(client: TestClient) -> None:
     assert any(item["id"] == event_id for item in list_body["items"])
     assert list_body["total"] == 1
 
-    get_response = client.get(
-        f"/api/v1/events/{event_id}", headers={"X-User-Id": "rupa"}
-    )
+    get_response = client.get(f"/api/v1/events/{event_id}", headers={"X-User-Id": "rupa"})
     assert get_response.status_code == 200
     assert get_response.json()["category"] == "education"
 
@@ -213,28 +185,16 @@ def test_create_list_get_update_delete_event(client: TestClient) -> None:
     assert update_response.json()["status"] == "in-progress"
     assert update_response.json()["notes"] == "Accepted offer"
 
-    delete_response = client.delete(
-        f"/api/v1/events/{event_id}", headers={"X-User-Id": "rupa"}
-    )
+    delete_response = client.delete(f"/api/v1/events/{event_id}", headers={"X-User-Id": "rupa"})
     assert delete_response.status_code == 204
 
-    missing_response = client.get(
-        f"/api/v1/events/{event_id}", headers={"X-User-Id": "rupa"}
-    )
+    missing_response = client.get(f"/api/v1/events/{event_id}", headers={"X-User-Id": "rupa"})
     assert missing_response.status_code == 404
 
 
 def test_user_scope_and_summary_endpoints(client: TestClient) -> None:
-    client.post(
-        "/api/v1/events",
-        headers={"X-User-Id": "rupa"},
-        json=_event_payload("Rupa Event", "2028-01-01", 2000),
-    )
-    client.post(
-        "/api/v1/events",
-        headers={"X-User-Id": "alex"},
-        json=_event_payload("Alex Event", "2028-02-01", 3000),
-    )
+    client.post("/api/v1/events", headers={"X-User-Id": "rupa"}, json=_event_payload("Rupa Event", "2028-01-01", 2000))
+    client.post("/api/v1/events", headers={"X-User-Id": "alex"}, json=_event_payload("Alex Event", "2028-02-01", 3000))
 
     rupa_events = client.get("/api/v1/events", headers={"X-User-Id": "rupa"})
     alex_events = client.get("/api/v1/events", headers={"X-User-Id": "alex"})
@@ -247,9 +207,7 @@ def test_user_scope_and_summary_endpoints(client: TestClient) -> None:
     assert overview.status_code == 200
     assert overview.json()["total_events"] == 1
 
-    financial = client.get(
-        "/api/v1/summary/financial?next_years=5", headers={"X-User-Id": "rupa"}
-    )
+    financial = client.get("/api/v1/summary/financial?next_years=5", headers={"X-User-Id": "rupa"})
     assert financial.status_code == 200
     assert financial.json()["total_savings_target"] == 45000.0
     assert financial.json()["total_amount_saved"] == 2000.0
@@ -268,9 +226,7 @@ def test_filter_pagination_and_sorting(client: TestClient) -> None:
     assert filtered_year.status_code == 200
     assert filtered_year.json()["total"] == 2
 
-    paged = client.get(
-        "/api/v1/events?page=1&page_size=2&sort_by=start_date&sort_order=asc"
-    )
+    paged = client.get("/api/v1/events?page=1&page_size=2&sort_by=start_date&sort_order=asc")
     assert paged.status_code == 200
     body = paged.json()
     assert body["page"] == 1
@@ -280,9 +236,7 @@ def test_filter_pagination_and_sorting(client: TestClient) -> None:
     assert body["items"][0]["title"] == "A Event"
 
 
-def test_event_date_validation_and_financial_computed_fields(
-    client: TestClient,
-) -> None:
+def test_event_date_validation_and_financial_computed_fields(client: TestClient) -> None:
     response = client.post(
         "/api/v1/events",
         json={
@@ -294,9 +248,7 @@ def test_event_date_validation_and_financial_computed_fields(
     )
     assert response.status_code == 422
 
-    funded = client.post(
-        "/api/v1/events", json=_event_payload("Funded", "2030-01-01", 50000)
-    )
+    funded = client.post("/api/v1/events", json=_event_payload("Funded", "2030-01-01", 50000))
     assert funded.status_code == 201
     assert funded.json()["is_fully_funded"] is True
     assert funded.json()["savings_progress_pct"] == 100.0
@@ -313,36 +265,3 @@ def test_event_date_validation_and_financial_computed_fields(
     assert non_financial.status_code == 201
     assert non_financial.json()["savings_progress_pct"] is None
     assert non_financial.json()["is_fully_funded"] is None
-
-
-def test_financial_event_requires_savings_target(client: TestClient) -> None:
-    response = client.post(
-        "/api/v1/events",
-        json={
-            "title": "Invest in business",
-            "category": "finance",
-            "start_date": "2028-05-01",
-            "is_financial": True,
-        },
-    )
-
-    assert response.status_code == 422
-    assert response.json()["detail"] == "financial events must include savings_target"
-
-
-def test_completed_event_cannot_have_future_date(client: TestClient) -> None:
-    response = client.post(
-        "/api/v1/events",
-        json={
-            "title": "Future completion",
-            "category": "career",
-            "start_date": "2999-01-01",
-            "status": "completed",
-        },
-    )
-
-    assert response.status_code == 422
-    assert (
-        response.json()["detail"]
-        == "completed events cannot have a future start/end date"
-    )

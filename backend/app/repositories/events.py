@@ -38,23 +38,17 @@ class EventRepository(Protocol):
 
     async def get_event(self, user_id: str, event_id: str) -> Event | None: ...
 
-    async def update_event(
-        self, user_id: str, event_id: str, payload: EventUpdate
-    ) -> Event | None: ...
+    async def update_event(self, user_id: str, event_id: str, payload: EventUpdate) -> Event | None: ...
 
     async def delete_event(self, user_id: str, event_id: str) -> bool: ...
 
     async def get_overview_summary(self, user_id: str) -> dict: ...
 
-    async def get_financial_summary(
-        self, user_id: str, next_years: int = 5
-    ) -> dict: ...
+    async def get_financial_summary(self, user_id: str, next_years: int = 5) -> dict: ...
 
 
 class MongoEventRepository:
-    def __init__(
-        self, db: AsyncIOMotorDatabase, collection_name: str | None = None
-    ) -> None:
+    def __init__(self, db: AsyncIOMotorDatabase, collection_name: str | None = None) -> None:
         self.collection = db[collection_name or settings.mongo_collection_events]
 
     async def ensure_indexes(self) -> None:
@@ -84,9 +78,7 @@ class MongoEventRepository:
         data["priority_rank"] = _PRIORITY_RANK.get(data.get("priority", "medium"), 2)
 
         result = await self.collection.insert_one(data)
-        created = await self.collection.find_one(
-            {"_id": result.inserted_id, "deleted_at": None}
-        )
+        created = await self.collection.find_one({"_id": result.inserted_id, "deleted_at": None})
         if not created:
             raise RuntimeError("Failed to create event")
         return self._doc_to_event(created)
@@ -118,13 +110,15 @@ class MongoEventRepository:
 
         if sort_by == "priority":
             direction = 1 if sort_order == "asc" else -1
-            docs = await self.collection.aggregate(
-                [
-                    {"$match": query},
-                    {"$sort": {"priority_rank": direction, "start_date": 1}},
-                    {"$skip": skip},
-                    {"$limit": page_size},
-                ]
+            docs = await (
+                self.collection.aggregate(
+                    [
+                        {"$match": query},
+                        {"$sort": {"priority_rank": direction, "start_date": 1}},
+                        {"$skip": skip},
+                        {"$limit": page_size},
+                    ]
+                )
             ).to_list(length=page_size)
         else:
             direction = ASCENDING if sort_order == "asc" else DESCENDING
@@ -141,16 +135,12 @@ class MongoEventRepository:
     async def get_event(self, user_id: str, event_id: str) -> Event | None:
         if not ObjectId.is_valid(event_id):
             return None
-        doc = await self.collection.find_one(
-            {"_id": ObjectId(event_id), **self._base_query(user_id)}
-        )
+        doc = await self.collection.find_one({"_id": ObjectId(event_id), **self._base_query(user_id)})
         if doc is None:
             return None
         return self._doc_to_event(doc)
 
-    async def update_event(
-        self, user_id: str, event_id: str, payload: EventUpdate
-    ) -> Event | None:
+    async def update_event(self, user_id: str, event_id: str, payload: EventUpdate) -> Event | None:
         if not ObjectId.is_valid(event_id):
             return None
 
@@ -189,16 +179,11 @@ class MongoEventRepository:
             [{"$match": query}, {"$group": {"_id": "$status", "count": {"$sum": 1}}}]
         ).to_list(length=20)
         phase_rows = await self.collection.aggregate(
-            [
-                {"$match": query},
-                {"$group": {"_id": "$timeline_phase", "count": {"$sum": 1}}},
-            ]
+            [{"$match": query}, {"$group": {"_id": "$timeline_phase", "count": {"$sum": 1}}}]
         ).to_list(length=50)
 
         by_status = {row["_id"]: row["count"] for row in status_rows if row.get("_id")}
-        by_timeline_phase = {
-            row["_id"]: row["count"] for row in phase_rows if row.get("_id")
-        }
+        by_timeline_phase = {row["_id"]: row["count"] for row in phase_rows if row.get("_id")}
 
         return {
             "total_events": total_events,
@@ -231,9 +216,7 @@ class MongoEventRepository:
                 "$lt": end.isoformat(),
             },
         }
-        upcoming_financial_events = await self.collection.count_documents(
-            upcoming_query
-        )
+        upcoming_financial_events = await self.collection.count_documents(upcoming_query)
 
         return {
             "total_savings_target": round(total_savings_target, 2),
