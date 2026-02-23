@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pkl
+*.sqlite3
+
+# Environments
+.venv/
+env/
+venv/
+
+# IDEs / Editors
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Env files
+.env
+*.env.local
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
