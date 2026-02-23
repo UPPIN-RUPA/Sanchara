@@ -23,8 +23,3 @@ venv/
 # Env files
 .env
 *.env.local
-
-# Node / Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/*.tsbuildinfo
