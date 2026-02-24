@@ -3,16 +3,17 @@
 ## Run locally
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .[dev]
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python3 -m pip install --upgrade pip setuptools wheel
+pip install -e '.[dev]'
+APP_ENV=local python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## Run tests
 
 ```bash
-pip install -e .[dev]
+pip install -e '.[dev]'
 APP_ENV=test pytest
 ```
 
@@ -96,3 +97,6 @@ Local frontend access is enabled for:
 
 
 Frontend uses `VITE_API_BASE_URL` (see `frontend/.env.example`) to target backend APIs.
+
+
+Note for zsh/macOS: use `python3` (not `python`) and quote editable extras as `pip install -e '.[dev]'`  to avoid shell glob expansion.
