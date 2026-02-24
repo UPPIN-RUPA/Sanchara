@@ -103,3 +103,18 @@ docker-compose up --build
 - Added summary endpoints for overview and financial rollups.
 - Added user-scoped events via `X-User-Id` (defaults to `demo-user`).
 - Added seed script (`backend/scripts/seed_demo_events.py`) and CI workflow (`.github/workflows/backend-ci.yml`).
+
+
+## Frontend (new)
+
+A minimal React + Vite + TypeScript frontend is available in `frontend/`.
+
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Set `VITE_API_BASE_URL` in `frontend/.env` when backend runs on a different URL.
+The UI sends `X-User-Id` with each request.

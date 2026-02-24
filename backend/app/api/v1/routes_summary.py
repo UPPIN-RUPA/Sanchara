@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from app.api.dependencies import get_current_user_id
 from app.models.event import SummaryFinancialResponse, SummaryOverviewResponse
 from app.repositories.events import EventRepository
+from app.services.summary_service import SummaryService
 
 router = APIRouter(prefix="/summary", tags=["summary"])
 
@@ -24,6 +25,9 @@ async def summary_overview(
 async def summary_financial(
     next_years: int = Query(default=5, ge=1, le=40),
     user_id: str = Depends(get_current_user_id),
+    service: SummaryService = Depends(get_summary_service),
+) -> SummaryFinancialResponse:
+    return await service.financial(user_id=user_id, next_years=next_years)
     repository: EventRepository = Depends(get_event_repository),
 ) -> SummaryFinancialResponse:
     data = await repository.get_financial_summary(user_id=user_id, next_years=next_years)

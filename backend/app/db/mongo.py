@@ -8,6 +8,10 @@ class MongoManager:
         self._client: AsyncIOMotorClient | None = None
 
     def connect(self) -> None:
+        self._client = AsyncIOMotorClient(
+            settings.mongo_uri,
+            serverSelectionTimeoutMS=settings.mongo_server_selection_timeout_ms,
+        )
         self._client = AsyncIOMotorClient(settings.mongo_uri)
 
     def close(self) -> None:

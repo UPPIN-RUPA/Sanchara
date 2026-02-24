@@ -1,3 +1,9 @@
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,6 +14,9 @@ from app.api.v1.routes_summary import router as summary_router
 from app.core.config import settings
 from app.db.mongo import mongo_manager
 from app.repositories.events import MongoEventRepository
+from app.repositories.in_memory import InMemoryEventRepository
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
