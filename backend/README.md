@@ -3,24 +3,17 @@
 ## Run locally
 
 ```bash
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
-python3 -m pip install --upgrade pip setuptools wheel
-pip install -e '.[dev]'
-APP_ENV=local python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+pip install -e .[dev]
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## Run tests
 
 ```bash
-pip install -e '.[dev]'
 APP_ENV=test pytest
 ```
-
-If you see `RuntimeError: The starlette.testclient module requires the httpx package`,
-it means dev dependencies are not installed yet.
-
-- Architecture notes: `docs/ARCHITECTURE.md`
 
 ## API endpoints
 

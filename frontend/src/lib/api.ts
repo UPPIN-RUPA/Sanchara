@@ -57,33 +57,22 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 async function request<T>(
   path: string,
   userId: string,
   init?: RequestInit
 ): Promise<T> {
-  let response: Response;
-  try {
-    response = await fetch(`${API_BASE}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        "X-User-Id": userId,
-        ...(init?.headers ?? {}),
-      },
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Network error while contacting backend";
-    throw new ApiError(
-      0,
-      `${message}. Check backend is running and VITE_API_BASE_URL=${API_BASE}`
-    );
-  }
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      "X-User-Id": userId,
+      ...(init?.headers ?? {}),
+    },
+  });
 
   if (!response.ok) {
     let message = `Request failed: ${response.status}`;

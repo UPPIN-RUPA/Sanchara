@@ -1,16 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.api.dependencies import get_current_user_id
-from app.models.event import (
-    Event,
-    EventCreate,
-    EventListResponse,
-    EventStatus,
-    EventUpdate,
-)
+from app.models.event import Event, EventCreate, EventListResponse, EventStatus, EventUpdate
 from app.repositories.events import EventRepository, SortBy, SortOrder
-from app.services.event_service import EventService
-from app.services.errors import ServiceValidationError
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -37,6 +29,10 @@ async def create_event(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
+    repository: EventRepository = Depends(get_event_repository),
+) -> Event:
+    payload = payload.model_copy(update={"user_id": user_id})
+    return await repository.create_event(payload)
 
 
 @router.get("", response_model=EventListResponse)
@@ -52,6 +48,9 @@ async def list_events(
     service: EventService = Depends(get_event_service),
 ) -> EventListResponse:
     return await service.list_events(
+    repository: EventRepository = Depends(get_event_repository),
+) -> EventListResponse:
+    items, total = await repository.list_events(
         user_id=user_id,
         status=status,
         category=category,
@@ -61,6 +60,7 @@ async def list_events(
         sort_by=sort_by,
         sort_order=sort_order,
     )
+    return EventListResponse(items=items, page=page, page_size=page_size, total=total)
 
 
 @router.get("/{event_id}", response_model=Event)
@@ -74,6 +74,11 @@ async def get_event(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Event not found"
         )
+    repository: EventRepository = Depends(get_event_repository),
+) -> Event:
+    event = await repository.get_event(user_id, event_id)
+    if event is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     return event
 
 
@@ -94,6 +99,11 @@ async def update_event(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Event not found"
         )
+    repository: EventRepository = Depends(get_event_repository),
+) -> Event:
+    event = await repository.update_event(user_id, event_id, payload)
+    if event is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     return event
 
 
@@ -108,3 +118,8 @@ async def delete_event(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Event not found"
         )
+    repository: EventRepository = Depends(get_event_repository),
+) -> None:
+    deleted = await repository.delete_event(user_id, event_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
