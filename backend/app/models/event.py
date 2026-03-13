@@ -63,6 +63,16 @@ class EventUpdate(BaseModel):
     amount_saved: float | None = Field(default=None, ge=0)
     linked_event_ids: list[str] | None = None
 
+    @model_validator(mode="after")
+    def validate_dates(self) -> "EventUpdate":
+        if (
+            self.start_date is not None
+            and self.end_date is not None
+            and self.end_date < self.start_date
+        ):
+            raise ValueError("end_date cannot be earlier than start_date")
+        return self
+
 
 class Event(EventBase):
     id: str

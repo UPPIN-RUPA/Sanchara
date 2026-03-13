@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     mongo_uri: str = "mongodb://localhost:27017"
     mongo_db_name: str = "sanchara"
     mongo_collection_events: str = "events"
+    mongo_collection_tasks: str = "tasks"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

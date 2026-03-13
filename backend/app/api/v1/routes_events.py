@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from app.api.dependencies import get_current_user_id
 from app.models.event import Event, EventCreate, EventListResponse, EventStatus, EventUpdate
 from app.repositories.events import EventRepository, SortBy, SortOrder
+from app.services.errors import ServiceValidationError
+from app.services.event_service import EventService
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -11,14 +13,25 @@ def get_event_repository(request: Request) -> EventRepository:
     return request.app.state.events_repository
 
 
+def get_event_service(
+    repository: EventRepository = Depends(get_event_repository),
+) -> EventService:
+    return EventService(repository)
+
+
 @router.post("", response_model=Event, status_code=status.HTTP_201_CREATED)
 async def create_event(
     payload: EventCreate,
     user_id: str = Depends(get_current_user_id),
-    repository: EventRepository = Depends(get_event_repository),
+    service: EventService = Depends(get_event_service),
 ) -> Event:
-    payload = payload.model_copy(update={"user_id": user_id})
-    return await repository.create_event(payload)
+    try:
+        return await service.create_event(user_id, payload)
+    except ServiceValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get("", response_model=EventListResponse)
@@ -31,9 +44,9 @@ async def list_events(
     sort_by: SortBy = Query(default="start_date"),
     sort_order: SortOrder = Query(default="asc"),
     user_id: str = Depends(get_current_user_id),
-    repository: EventRepository = Depends(get_event_repository),
+    service: EventService = Depends(get_event_service),
 ) -> EventListResponse:
-    items, total = await repository.list_events(
+    return await service.list_events(
         user_id=user_id,
         status=status,
         category=category,
@@ -43,16 +56,15 @@ async def list_events(
         sort_by=sort_by,
         sort_order=sort_order,
     )
-    return EventListResponse(items=items, page=page, page_size=page_size, total=total)
 
 
 @router.get("/{event_id}", response_model=Event)
 async def get_event(
     event_id: str,
     user_id: str = Depends(get_current_user_id),
-    repository: EventRepository = Depends(get_event_repository),
+    service: EventService = Depends(get_event_service),
 ) -> Event:
-    event = await repository.get_event(user_id, event_id)
+    event = await service.get_event(user_id, event_id)
     if event is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     return event
@@ -63,9 +75,16 @@ async def update_event(
     event_id: str,
     payload: EventUpdate,
     user_id: str = Depends(get_current_user_id),
-    repository: EventRepository = Depends(get_event_repository),
+    service: EventService = Depends(get_event_service),
 ) -> Event:
-    event = await repository.update_event(user_id, event_id, payload)
+    try:
+        event = await service.update_event(user_id, event_id, payload)
+    except ServiceValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
     if event is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
     return event
@@ -75,8 +94,8 @@ async def update_event(
 async def delete_event(
     event_id: str,
     user_id: str = Depends(get_current_user_id),
-    repository: EventRepository = Depends(get_event_repository),
+    service: EventService = Depends(get_event_service),
 ) -> None:
-    deleted = await repository.delete_event(user_id, event_id)
+    deleted = await service.delete_event(user_id, event_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")

@@ -5,14 +5,53 @@ export type EventItem = {
   category: string;
   start_date: string;
   end_date?: string | null;
+  description?: string | null;
+  notes?: string | null;
   status: "planned" | "in-progress" | "completed";
   priority: "low" | "medium" | "high" | "critical";
   timeline_phase?: string | null;
   is_financial: boolean;
+  estimated_cost?: number | null;
   savings_target?: number | null;
+  actual_cost?: number | null;
   amount_saved?: number | null;
   savings_progress_pct?: number | null;
   is_fully_funded?: boolean | null;
+  linked_event_ids?: string[];
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type TaskItem = {
+  id: string;
+  event_id: string;
+  user_id: string;
+  title: string;
+  notes?: string | null;
+  due_date?: string | null;
+  status: "pending" | "completed";
+  priority: "low" | "medium" | "high";
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type TaskListResponse = {
+  items: TaskItem[];
+};
+
+export type CreateTaskPayload = {
+  title: string;
+  notes?: string;
+  due_date?: string;
+  priority?: "low" | "medium" | "high";
+};
+
+export type UpdateTaskPayload = {
+  title?: string;
+  notes?: string;
+  due_date?: string | null;
+  status?: "pending" | "completed";
+  priority?: "low" | "medium" | "high";
 };
 
 export type EventListResponse = {
@@ -112,6 +151,41 @@ export function getEvents(
   search.set("sort_order", "asc");
   const query = search.toString();
   return request<EventListResponse>(`/events${query ? `?${query}` : ""}`, userId);
+}
+
+export function getEvent(userId: string, eventId: string): Promise<EventItem> {
+  return request<EventItem>(`/events/${eventId}`, userId);
+}
+
+export function getTasks(userId: string, eventId: string): Promise<TaskListResponse> {
+  return request<TaskListResponse>(`/events/${eventId}/tasks`, userId);
+}
+
+export function createTask(
+  userId: string,
+  eventId: string,
+  payload: CreateTaskPayload
+): Promise<TaskItem> {
+  return request<TaskItem>(`/events/${eventId}/tasks`, userId, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateTask(
+  userId: string,
+  eventId: string,
+  taskId: string,
+  payload: UpdateTaskPayload
+): Promise<TaskItem> {
+  return request<TaskItem>(`/events/${eventId}/tasks/${taskId}`, userId, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteTask(userId: string, eventId: string, taskId: string): Promise<void> {
+  return request<void>(`/events/${eventId}/tasks/${taskId}`, userId, { method: "DELETE" });
 }
 
 export function createEvent(

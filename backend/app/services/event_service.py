@@ -23,6 +23,13 @@ class EventService:
             raise ServiceValidationError("financial events must include savings_target")
 
     @staticmethod
+    def _validate_date_order(
+        *, start_date: date | None, end_date: date | None
+    ) -> None:
+        if start_date is not None and end_date is not None and end_date < start_date:
+            raise ServiceValidationError("end_date cannot be earlier than start_date")
+
+    @staticmethod
     def _validate_completion_timing(
         *, status: EventStatus | None, start_date: date | None, end_date: date | None
     ) -> None:
@@ -39,6 +46,10 @@ class EventService:
         self._validate_financial_requirements(
             is_financial=payload.is_financial,
             savings_target=payload.savings_target,
+        )
+        self._validate_date_order(
+            start_date=payload.start_date,
+            end_date=payload.end_date,
         )
         self._validate_completion_timing(
             status=payload.status,
@@ -107,6 +118,10 @@ class EventService:
         )
         next_end_date = (
             payload.end_date if payload.end_date is not None else existing.end_date
+        )
+        self._validate_date_order(
+            start_date=next_start_date,
+            end_date=next_end_date,
         )
         self._validate_completion_timing(
             status=next_status,
