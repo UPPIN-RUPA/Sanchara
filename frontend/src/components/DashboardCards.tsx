@@ -5,25 +5,29 @@ type Props = {
   financial: FinancialSummary | null;
 };
 
+const CARD_CONFIG = [
+  { label: "Total events", key: "total", tone: "sand" },
+  { label: "Planned now", key: "planned", tone: "sea" },
+  { label: "Savings target", key: "target", tone: "sky" },
+  { label: "Amount saved", key: "saved", tone: "forest" },
+] as const;
+
 export function DashboardCards({ overview, financial }: Props) {
+  const values = {
+    total: overview?.total_events ?? "-",
+    planned: overview?.by_status?.planned ?? 0,
+    target: financial ? `₹${financial.total_savings_target.toLocaleString()}` : "-",
+    saved: financial ? `₹${financial.total_amount_saved.toLocaleString()}` : "-",
+  };
+
   return (
     <section className="cards">
-      <article className="card">
-        <h3>Total events</h3>
-        <p>{overview?.total_events ?? "-"}</p>
-      </article>
-      <article className="card">
-        <h3>Planned events</h3>
-        <p>{overview?.by_status?.planned ?? 0}</p>
-      </article>
-      <article className="card">
-        <h3>Savings target</h3>
-        <p>{financial ? `₹${financial.total_savings_target.toLocaleString()}` : "-"}</p>
-      </article>
-      <article className="card">
-        <h3>Amount saved</h3>
-        <p>{financial ? `₹${financial.total_amount_saved.toLocaleString()}` : "-"}</p>
-      </article>
+      {CARD_CONFIG.map((card) => (
+        <article key={card.key} className={`card stat-card tone-${card.tone}`}>
+          <span className="stat-card-label">{card.label}</span>
+          <p>{values[card.key]}</p>
+        </article>
+      ))}
     </section>
   );
 }

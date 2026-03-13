@@ -26,14 +26,8 @@ export function EventForm({ onSubmit }: Props) {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const savingsTargetNumber = useMemo(
-    () => (savingsTarget ? Number(savingsTarget) : undefined),
-    [savingsTarget]
-  );
-  const amountSavedNumber = useMemo(
-    () => (amountSaved ? Number(amountSaved) : undefined),
-    [amountSaved]
-  );
+  const savingsTargetNumber = useMemo(() => (savingsTarget ? Number(savingsTarget) : undefined), [savingsTarget]);
+  const amountSavedNumber = useMemo(() => (amountSaved ? Number(amountSaved) : undefined), [amountSaved]);
 
   return (
     <form
@@ -50,10 +44,7 @@ export function EventForm({ onSubmit }: Props) {
           setError("Start date is required.");
           return;
         }
-        if (
-          isFinancial &&
-          (savingsTargetNumber === undefined || Number.isNaN(savingsTargetNumber))
-        ) {
+        if (isFinancial && (savingsTargetNumber === undefined || Number.isNaN(savingsTargetNumber))) {
           setError("Savings target is required for financial events.");
           return;
         }
@@ -90,90 +81,73 @@ export function EventForm({ onSubmit }: Props) {
         setAmountSaved("");
       }}
     >
-      <h3>Create event</h3>
-      {error && <p className="error">{error}</p>}
-
-      <input
-        required
-        value={title}
-        placeholder="Title"
-        onChange={(e) => setTitle(e.target.value)}
-      />
-      <input
-        required
-        type="date"
-        value={startDate}
-        onChange={(e) => setStartDate(e.target.value)}
-      />
-      <input
-        value={category}
-        placeholder="Category"
-        onChange={(e) => setCategory(e.target.value)}
-      />
-      <input
-        value={timelinePhase}
-        placeholder="Timeline phase (optional)"
-        onChange={(e) => setTimelinePhase(e.target.value)}
-      />
-
-      <div className="row">
-        <select
-          value={status}
-          onChange={(e) =>
-            setStatus(e.target.value as CreateEventPayload["status"])
-          }
-        >
-          <option value="planned">planned</option>
-          <option value="in-progress">in-progress</option>
-          <option value="completed">completed</option>
-        </select>
-
-        <select
-          value={priority}
-          onChange={(e) =>
-            setPriority(e.target.value as CreateEventPayload["priority"])
-          }
-        >
-          <option value="low">low</option>
-          <option value="medium">medium</option>
-          <option value="high">high</option>
-          <option value="critical">critical</option>
-        </select>
+      <div className="section-heading compact-heading">
+        <div>
+          <p className="section-kicker">Create</p>
+          <h3>Add a new milestone</h3>
+        </div>
+        <p className="section-copy">Capture the next chapter before it slips away.</p>
       </div>
 
-      <label>
-        <input
-          type="checkbox"
-          checked={isFinancial}
-          onChange={(e) => setIsFinancial(e.target.checked)}
-        />
-        Financial event
-      </label>
-      {isFinancial && (
-        <p className="helper-text">
-          Savings target is required to compute savings progress.
-        </p>
-      )}
+      {error && <p className="error">{error}</p>}
 
-      <div className="row">
-        <input
-          type="number"
-          step="0.01"
-          placeholder="Savings target"
-          value={savingsTarget}
-          onChange={(e) => setSavingsTarget(e.target.value)}
-        />
-        <input
-          type="number"
-          step="0.01"
-          placeholder="Amount saved"
-          value={amountSaved}
-          onChange={(e) => setAmountSaved(e.target.value)}
-        />
+      <div className="form-grid">
+        <label className="form-field form-field-wide">
+          <span>Title</span>
+          <input required value={title} placeholder="Buy land in the village" onChange={(e) => setTitle(e.target.value)} />
+        </label>
+        <label className="form-field">
+          <span>Start date</span>
+          <input required type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </label>
+        <label className="form-field">
+          <span>Category</span>
+          <input value={category} placeholder="Finance" onChange={(e) => setCategory(e.target.value)} />
+        </label>
+        <label className="form-field form-field-wide">
+          <span>Timeline phase</span>
+          <input value={timelinePhase} placeholder="Village return phase" onChange={(e) => setTimelinePhase(e.target.value)} />
+        </label>
+        <label className="form-field">
+          <span>Status</span>
+          <select value={status} onChange={(e) => setStatus(e.target.value as CreateEventPayload["status"])}>
+            <option value="planned">planned</option>
+            <option value="in-progress">in-progress</option>
+            <option value="completed">completed</option>
+          </select>
+        </label>
+        <label className="form-field">
+          <span>Priority</span>
+          <select value={priority} onChange={(e) => setPriority(e.target.value as CreateEventPayload["priority"])}>
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+            <option value="critical">critical</option>
+          </select>
+        </label>
+      </div>
+
+      <label className="toggle-row">
+        <input type="checkbox" checked={isFinancial} onChange={(e) => setIsFinancial(e.target.checked)} />
+        <span>
+          <strong>Financial milestone</strong>
+          <small>Track the target amount and current savings for this event.</small>
+        </span>
+      </label>
+
+      <div className="form-grid compact-grid-two">
+        <label className="form-field">
+          <span>Savings target</span>
+          <input type="number" step="0.01" placeholder="500000" value={savingsTarget} onChange={(e) => setSavingsTarget(e.target.value)} />
+        </label>
+        <label className="form-field">
+          <span>Amount saved</span>
+          <input type="number" step="0.01" placeholder="125000" value={amountSaved} onChange={(e) => setAmountSaved(e.target.value)} />
+        </label>
       </div>
 
       <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Creating..." : "Create"}
+        {isSubmitting ? "Creating milestone..." : "Create milestone"}
       </button>
     </form>
   );

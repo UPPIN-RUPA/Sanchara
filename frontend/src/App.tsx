@@ -50,6 +50,8 @@ export function App() {
   const items = events?.items ?? [];
   const upcomingEvents = useMemo(() => items.filter(isUpcoming).slice(0, 4), [items]);
   const recentEvents = useMemo(() => [...items].sort((a, b) => b.start_date.localeCompare(a.start_date)).slice(0, 4), [items]);
+  const completedCount = overview?.by_status?.completed ?? 0;
+  const focusText = selectedEvent?.title ?? upcomingEvents[0]?.title ?? "Your next chapter";
 
   async function refresh() {
     try {
@@ -169,23 +171,33 @@ export function App() {
       <SidebarNav activeView={activeView} onChange={setActiveView} />
       <section className="app-main">
         <header className="hero panel">
-          <div>
+          <div className="hero-copy-block">
             <p className="hero-kicker">Life planning platform</p>
             <h1>Sanchara</h1>
-            <p className="hero-copy">A personal timeline for planning milestones, tasks, savings, notes, and memories.</p>
+            <p className="hero-copy">A visual workspace for long-term milestones, savings journeys, reflections, and the small tasks that turn plans into a lived life.</p>
+            <div className="hero-tags">
+              <span className="hero-tag">{items.length} milestones mapped</span>
+              <span className="hero-tag">{completedCount} completed</span>
+              <span className="hero-tag">Focus: {focusText}</span>
+            </div>
           </div>
-          <div className="hero-controls">
-            <label>
-              Quick user
-              <select value={QUICK_USERS.includes(userId) ? userId : "custom"} onChange={(e) => setUserId(e.target.value === "custom" ? userId : e.target.value)}>
-                {QUICK_USERS.map((u) => <option key={u} value={u}>{u}</option>)}
-                <option value="custom">custom</option>
-              </select>
-            </label>
-            <label>
-              User id
-              <input value={userId} onChange={(e) => setUserId(e.target.value || "demo-user")} />
-            </label>
+          <div className="hero-sidecard">
+            <p className="section-kicker">Today&apos;s focus</p>
+            <h3>{focusText}</h3>
+            <p className="section-copy">Keep the plan visible, make one concrete move, and record what changed.</p>
+            <div className="hero-controls">
+              <label>
+                Quick user
+                <select value={QUICK_USERS.includes(userId) ? userId : "custom"} onChange={(e) => setUserId(e.target.value === "custom" ? userId : e.target.value)}>
+                  {QUICK_USERS.map((u) => <option key={u} value={u}>{u}</option>)}
+                  <option value="custom">custom</option>
+                </select>
+              </label>
+              <label>
+                User id
+                <input value={userId} onChange={(e) => setUserId(e.target.value || "demo-user")} />
+              </label>
+            </div>
           </div>
         </header>
 
@@ -201,18 +213,24 @@ export function App() {
         {activeView === "dashboard" && (
           <div className="view-stack">
             <DashboardCards overview={overview} financial={financial} />
-            <section className="panel dashboard-grid">
-              <article className="dashboard-card">
+            <section className="panel dashboard-grid dashboard-insights">
+              <article className="dashboard-card featured-card">
                 <p className="section-kicker">Upcoming</p>
                 <h3>Next milestones</h3>
-                {upcomingEvents.map((event) => <button key={event.id} type="button" className="list-link" onClick={() => { setSelectedEventId(event.id); setActiveView("timeline"); }}>{event.title} · {event.start_date}</button>)}
-                {upcomingEvents.length === 0 && <p>No upcoming milestones yet.</p>}
+                <p className="section-copy">A clear line of sight into what deserves attention next.</p>
+                <div className="stacked-links">
+                  {upcomingEvents.map((event) => <button key={event.id} type="button" className="list-link" onClick={() => { setSelectedEventId(event.id); setActiveView("timeline"); }}>{event.title} <span>{event.start_date}</span></button>)}
+                  {upcomingEvents.length === 0 && <p>No upcoming milestones yet.</p>}
+                </div>
               </article>
-              <article className="dashboard-card">
-                <p className="section-kicker">Recent</p>
-                <h3>Latest timeline entries</h3>
-                {recentEvents.map((event) => <button key={event.id} type="button" className="list-link" onClick={() => { setSelectedEventId(event.id); setActiveView("timeline"); }}>{event.title} · {event.category}</button>)}
-                {recentEvents.length === 0 && <p>No events yet.</p>}
+              <article className="dashboard-card accent-card">
+                <p className="section-kicker">Momentum</p>
+                <h3>Recent additions</h3>
+                <p className="section-copy">The latest moves across your life timeline.</p>
+                <div className="stacked-links">
+                  {recentEvents.map((event) => <button key={event.id} type="button" className="list-link" onClick={() => { setSelectedEventId(event.id); setActiveView("timeline"); }}>{event.title} <span>{event.category}</span></button>)}
+                  {recentEvents.length === 0 && <p>No events yet.</p>}
+                </div>
               </article>
             </section>
             <EventForm onSubmit={handleCreate} />
@@ -226,7 +244,7 @@ export function App() {
               <EventForm onSubmit={handleCreate} />
             </div>
             <section>
-              {!selectedEventId && <aside className="panel detail-empty-state"><h3>Select an event</h3><p>Choose a milestone to open its full workspace.</p></aside>}
+              {!selectedEventId && <aside className="panel detail-empty-state"><h3>Select an event</h3><p>Choose a milestone to open its full workspace and edit the plan in context.</p></aside>}
               {isDetailLoading && <aside className="panel detail-empty-state"><p className="loading">Loading event workspace...</p></aside>}
               {selectedEvent && !isDetailLoading && (
                 <EventDetailsPanel event={selectedEvent} userId={userId} onClose={() => { setSelectedEventId(null); setSelectedEvent(null); }} onEventUpdated={handleEventUpdated} />
@@ -236,7 +254,6 @@ export function App() {
         )}
 
         {activeView === "savings" && <SavingsBoard events={items} financial={financial} onSelect={(eventId) => { setSelectedEventId(eventId); setActiveView("timeline"); }} />}
-
         {activeView === "memories" && <MemoriesBoard events={items} memoriesByEvent={memoriesByEvent} onSelect={(eventId) => { setSelectedEventId(eventId); setActiveView("timeline"); }} />}
       </section>
     </main>

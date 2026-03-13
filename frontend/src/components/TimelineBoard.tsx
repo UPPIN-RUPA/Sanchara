@@ -18,17 +18,24 @@ function groupByYear(items: EventItem[]): Array<[string, EventItem[]]> {
   return Object.entries(grouped).sort(([a], [b]) => Number(a) - Number(b));
 }
 
+function fundingLabel(event: EventItem): string {
+  if (!event.is_financial) {
+    return event.timeline_phase || "non-financial";
+  }
+  return `${event.savings_progress_pct ?? 0}% funded`;
+}
+
 export function TimelineBoard({ events, selectedEventId, onSelect, onDelete }: Props) {
   const grouped = groupByYear(events);
 
   return (
-    <section className="panel section-panel">
+    <section className="panel section-panel timeline-panel">
       <div className="section-heading">
         <div>
           <p className="section-kicker">Timeline</p>
           <h3>Life map</h3>
         </div>
-        <p className="section-copy">Select a milestone to open its workspace.</p>
+        <p className="section-copy">Every year becomes a lane for milestones, savings, and next actions.</p>
       </div>
 
       {grouped.length === 0 && <p>No events found for the current filters.</p>}
@@ -52,12 +59,15 @@ export function TimelineBoard({ events, selectedEventId, onSelect, onDelete }: P
                       </div>
                       <h4>{event.title}</h4>
                       <p>{event.description || event.timeline_phase || "No overview yet."}</p>
+                      <div className="timeline-card-footer">
+                        <small>{fundingLabel(event)}</small>
+                        <small>{event.priority} priority</small>
+                      </div>
                       {event.is_financial && (
                         <div className="mini-progress">
                           <div className="progress-wrap compact">
                             <div className="progress-bar" style={{ width: `${event.savings_progress_pct ?? 0}%` }} />
                           </div>
-                          <small>{event.savings_progress_pct ?? 0}% funded</small>
                         </div>
                       )}
                     </button>
