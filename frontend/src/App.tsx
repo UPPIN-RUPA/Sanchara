@@ -95,13 +95,14 @@ export function App() {
       return;
     }
 
+    const selectedId = selectedEventId;
     let cancelled = false;
 
     async function loadEvent() {
       try {
         setIsDetailLoading(true);
         setDetailError("");
-        const event = await getEvent(userId, selectedEventId);
+        const event = await getEvent(userId, selectedId);
         if (!cancelled) {
           setSelectedEvent(event);
         }
