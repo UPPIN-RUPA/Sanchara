@@ -23,3 +23,11 @@ venv/
 # Env files
 .env
 *.env.local
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Python packaging
+*.egg-info/

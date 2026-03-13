@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     mongo_db_name: str = "sanchara"
     mongo_collection_events: str = "events"
     mongo_collection_tasks: str = "tasks"
+    mongo_collection_memories: str = "memories"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

@@ -22,6 +22,24 @@ export type EventItem = {
   updated_at?: string;
 };
 
+export type UpdateEventPayload = {
+  title?: string;
+  category?: string;
+  start_date?: string;
+  end_date?: string | null;
+  description?: string | null;
+  notes?: string | null;
+  status?: "planned" | "in-progress" | "completed";
+  priority?: "low" | "medium" | "high" | "critical";
+  timeline_phase?: string | null;
+  is_financial?: boolean;
+  estimated_cost?: number | null;
+  savings_target?: number | null;
+  actual_cost?: number | null;
+  amount_saved?: number | null;
+  linked_event_ids?: string[] | null;
+};
+
 export type TaskItem = {
   id: string;
   event_id: string;
@@ -52,6 +70,39 @@ export type UpdateTaskPayload = {
   due_date?: string | null;
   status?: "pending" | "completed";
   priority?: "low" | "medium" | "high";
+};
+
+export type MemoryItem = {
+  id: string;
+  event_id: string;
+  user_id: string;
+  title: string;
+  description?: string | null;
+  memory_type: "reflection" | "photo" | "video" | "document";
+  asset_url?: string | null;
+  captured_on?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type MemoryListResponse = {
+  items: MemoryItem[];
+};
+
+export type CreateMemoryPayload = {
+  title: string;
+  description?: string;
+  memory_type?: "reflection" | "photo" | "video" | "document";
+  asset_url?: string;
+  captured_on?: string;
+};
+
+export type UpdateMemoryPayload = {
+  title?: string;
+  description?: string | null;
+  memory_type?: "reflection" | "photo" | "video" | "document";
+  asset_url?: string | null;
+  captured_on?: string | null;
 };
 
 export type EventListResponse = {
@@ -96,14 +147,9 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
-async function request<T>(
-  path: string,
-  userId: string,
-  init?: RequestInit
-): Promise<T> {
+async function request<T>(path: string, userId: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
@@ -116,37 +162,30 @@ async function request<T>(
   if (!response.ok) {
     let message = `Request failed: ${response.status}`;
     const contentType = response.headers.get("content-type") ?? "";
-
     if (contentType.includes("application/json")) {
       const json = (await response.json()) as { detail?: string };
       message = json.detail ?? message;
     } else {
       const body = await response.text();
-      if (body) {
-        message = body;
-      }
+      if (body) message = body;
     }
-
     throw new ApiError(response.status, message);
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
 export function getEvents(
   userId: string,
-  params: { status?: string; category?: string; year?: string; page?: number } = {}
+  params: { status?: string; category?: string; year?: string; page?: number; pageSize?: number } = {}
 ): Promise<EventListResponse> {
   const search = new URLSearchParams();
   if (params.status) search.set("status", params.status);
   if (params.category) search.set("category", params.category);
   if (params.year) search.set("year", params.year);
   search.set("page", String(params.page ?? 1));
-  search.set("page_size", "10");
+  search.set("page_size", String(params.pageSize ?? 100));
   search.set("sort_by", "start_date");
   search.set("sort_order", "asc");
   const query = search.toString();
@@ -157,49 +196,48 @@ export function getEvent(userId: string, eventId: string): Promise<EventItem> {
   return request<EventItem>(`/events/${eventId}`, userId);
 }
 
+export function createEvent(userId: string, payload: CreateEventPayload): Promise<EventItem> {
+  return request<EventItem>("/events", userId, { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function updateEvent(userId: string, eventId: string, payload: UpdateEventPayload): Promise<EventItem> {
+  return request<EventItem>(`/events/${eventId}`, userId, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function deleteEvent(userId: string, eventId: string): Promise<void> {
+  return request<void>(`/events/${eventId}`, userId, { method: "DELETE" });
+}
+
 export function getTasks(userId: string, eventId: string): Promise<TaskListResponse> {
   return request<TaskListResponse>(`/events/${eventId}/tasks`, userId);
 }
 
-export function createTask(
-  userId: string,
-  eventId: string,
-  payload: CreateTaskPayload
-): Promise<TaskItem> {
-  return request<TaskItem>(`/events/${eventId}/tasks`, userId, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+export function createTask(userId: string, eventId: string, payload: CreateTaskPayload): Promise<TaskItem> {
+  return request<TaskItem>(`/events/${eventId}/tasks`, userId, { method: "POST", body: JSON.stringify(payload) });
 }
 
-export function updateTask(
-  userId: string,
-  eventId: string,
-  taskId: string,
-  payload: UpdateTaskPayload
-): Promise<TaskItem> {
-  return request<TaskItem>(`/events/${eventId}/tasks/${taskId}`, userId, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+export function updateTask(userId: string, eventId: string, taskId: string, payload: UpdateTaskPayload): Promise<TaskItem> {
+  return request<TaskItem>(`/events/${eventId}/tasks/${taskId}`, userId, { method: "PATCH", body: JSON.stringify(payload) });
 }
 
 export function deleteTask(userId: string, eventId: string, taskId: string): Promise<void> {
   return request<void>(`/events/${eventId}/tasks/${taskId}`, userId, { method: "DELETE" });
 }
 
-export function createEvent(
-  userId: string,
-  payload: CreateEventPayload
-): Promise<EventItem> {
-  return request<EventItem>("/events", userId, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+export function getMemories(userId: string, eventId: string): Promise<MemoryListResponse> {
+  return request<MemoryListResponse>(`/events/${eventId}/memories`, userId);
 }
 
-export function deleteEvent(userId: string, eventId: string): Promise<void> {
-  return request<void>(`/events/${eventId}`, userId, { method: "DELETE" });
+export function createMemory(userId: string, eventId: string, payload: CreateMemoryPayload): Promise<MemoryItem> {
+  return request<MemoryItem>(`/events/${eventId}/memories`, userId, { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function updateMemory(userId: string, eventId: string, memoryId: string, payload: UpdateMemoryPayload): Promise<MemoryItem> {
+  return request<MemoryItem>(`/events/${eventId}/memories/${memoryId}`, userId, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function deleteMemory(userId: string, eventId: string, memoryId: string): Promise<void> {
+  return request<void>(`/events/${eventId}/memories/${memoryId}`, userId, { method: "DELETE" });
 }
 
 export function getOverviewSummary(userId: string): Promise<OverviewSummary> {

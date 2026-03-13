@@ -10,15 +10,18 @@ from fastapi.testclient import TestClient
 
 from app.api.v1.routes_events import get_event_repository
 from app.api.v1.routes_tasks import get_task_repository
+from app.api.v1.routes_memories import get_memory_repository
 from app.main import app
 from app.models.event import Event, EventCreate, EventStatus, EventUpdate
 from app.models.task import Task, TaskCreate, TaskStatus, TaskUpdate
+from app.models.memory import Memory, MemoryCreate, MemoryType, MemoryUpdate
 
 
 class InMemoryEventRepository:
     def __init__(self) -> None:
         self.events: dict[str, Event] = {}
         self.tasks: dict[str, Task] = {}
+        self.memories: dict[str, Memory] = {}
 
     async def ensure_indexes(self) -> None:
         return None
@@ -162,14 +165,59 @@ class InMemoryEventRepository:
         del self.tasks[task_id]
         return True
 
+    async def create_memory(self, event_id: str, user_id: str, payload: MemoryCreate) -> Memory:
+        now = datetime.now(timezone.utc)
+        memory = Memory(
+            id=str(uuid4()),
+            event_id=event_id,
+            user_id=user_id,
+            created_at=now,
+            updated_at=now,
+            **payload.model_dump(),
+        )
+        self.memories[memory.id] = memory
+        return memory
+
+    async def list_memories(self, event_id: str, user_id: str) -> list[Memory]:
+        memories = [
+            memory
+            for memory in self.memories.values()
+            if memory.event_id == event_id and memory.user_id == user_id
+        ]
+        return sorted(memories, key=lambda memory: (memory.captured_on or date.min, memory.created_at), reverse=True)
+
+    async def update_memory(
+        self, event_id: str, user_id: str, memory_id: str, payload: MemoryUpdate
+    ) -> Memory | None:
+        memory = self.memories.get(memory_id)
+        if memory is None or memory.event_id != event_id or memory.user_id != user_id:
+            return None
+        updated = memory.model_copy(
+            update={
+                **payload.model_dump(exclude_unset=True),
+                "updated_at": datetime.now(timezone.utc),
+            }
+        )
+        self.memories[memory_id] = updated
+        return updated
+
+    async def delete_memory(self, event_id: str, user_id: str, memory_id: str) -> bool:
+        memory = self.memories.get(memory_id)
+        if memory is None or memory.event_id != event_id or memory.user_id != user_id:
+            return False
+        del self.memories[memory_id]
+        return True
+
 
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
     repository = InMemoryEventRepository()
     app.dependency_overrides[get_event_repository] = lambda: repository
     app.dependency_overrides[get_task_repository] = lambda: repository
+    app.dependency_overrides[get_memory_repository] = lambda: repository
     app.state.events_repository = repository
     app.state.tasks_repository = repository
+    app.state.memories_repository = repository
 
     with TestClient(app) as test_client:
         yield test_client
@@ -422,3 +470,64 @@ def test_tasks_require_valid_user_scoped_event(client: TestClient) -> None:
     )
     assert other_user_response.status_code == 404
     assert other_user_response.json()["detail"] == "Event not found"
+
+
+def test_create_list_update_delete_memories(client: TestClient) -> None:
+    event_response = client.post(
+        "/api/v1/events",
+        headers={"X-User-Id": "rupa"},
+        json=_event_payload("House", "2030-01-01", 12000),
+    )
+    event_id = event_response.json()["id"]
+
+    create_response = client.post(
+        f"/api/v1/events/{event_id}/memories",
+        headers={"X-User-Id": "rupa"},
+        json={
+            "title": "Site visit",
+            "description": "Visited the plot for the first time",
+            "memory_type": "photo",
+            "asset_url": "https://example.com/plot.jpg",
+            "captured_on": "2029-08-14",
+        },
+    )
+    assert create_response.status_code == 201
+    memory_id = create_response.json()["id"]
+    assert create_response.json()["memory_type"] == "photo"
+
+    list_response = client.get(
+        f"/api/v1/events/{event_id}/memories",
+        headers={"X-User-Id": "rupa"},
+    )
+    assert list_response.status_code == 200
+    assert list_response.json()["items"][0]["title"] == "Site visit"
+
+    update_response = client.patch(
+        f"/api/v1/events/{event_id}/memories/{memory_id}",
+        headers={"X-User-Id": "rupa"},
+        json={"description": "Captured first site walkthrough"},
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["description"] == "Captured first site walkthrough"
+
+    delete_response = client.delete(
+        f"/api/v1/events/{event_id}/memories/{memory_id}",
+        headers={"X-User-Id": "rupa"},
+    )
+    assert delete_response.status_code == 204
+
+
+def test_memories_require_valid_user_scoped_event(client: TestClient) -> None:
+    event_response = client.post(
+        "/api/v1/events",
+        headers={"X-User-Id": "rupa"},
+        json=_event_payload("Travel", "2031-05-01", 3000),
+    )
+    event_id = event_response.json()["id"]
+
+    response = client.get(
+        f"/api/v1/events/{event_id}/memories",
+        headers={"X-User-Id": "alex"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Event not found"

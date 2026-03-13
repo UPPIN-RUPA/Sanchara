@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { DashboardCards } from "./components/DashboardCards";
 import { EventDetailsPanel } from "./components/EventDetailsPanel";
 import { EventForm } from "./components/EventForm";
+import { MemoriesBoard } from "./components/MemoriesBoard";
+import { SidebarNav } from "./components/SidebarNav";
+import { SavingsBoard } from "./components/SavingsBoard";
+import { TimelineBoard } from "./components/TimelineBoard";
 import {
   ApiError,
   createEvent,
@@ -9,56 +13,43 @@ import {
   getEvent,
   getEvents,
   getFinancialSummary,
+  getMemories,
   getOverviewSummary,
   type CreateEventPayload,
   type EventItem,
   type EventListResponse,
   type FinancialSummary,
+  type MemoryItem,
   type OverviewSummary,
 } from "./lib/api";
 
-type GroupedEvents = Record<string, EventItem[]>;
+type View = "dashboard" | "timeline" | "savings" | "memories";
 
 const QUICK_USERS = ["demo-user", "rupa", "alex"];
 
-function toYear(dateIso: string): string {
-  return new Date(dateIso).getFullYear().toString();
-}
-
-function groupedByYear(items: EventItem[]): GroupedEvents {
-  return items.reduce<GroupedEvents>((acc, event) => {
-    const year = toYear(event.start_date);
-    acc[year] = acc[year] ?? [];
-    acc[year].push(event);
-    return acc;
-  }, {});
+function isUpcoming(event: EventItem): boolean {
+  return new Date(event.start_date) >= new Date(new Date().toISOString().slice(0, 10));
 }
 
 export function App() {
+  const [activeView, setActiveView] = useState<View>("dashboard");
   const [userId, setUserId] = useState("demo-user");
   const [status, setStatus] = useState("");
   const [category, setCategory] = useState("");
   const [year, setYear] = useState("");
-  const [page, setPage] = useState(1);
   const [events, setEvents] = useState<EventListResponse | null>(null);
   const [overview, setOverview] = useState<OverviewSummary | null>(null);
   const [financial, setFinancial] = useState<FinancialSummary | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
-  const [detailError, setDetailError] = useState("");
+  const [memoriesByEvent, setMemoriesByEvent] = useState<Record<string, MemoryItem[]>>({});
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
 
-  const totalPages = useMemo(() => {
-    if (!events) return 1;
-    return Math.max(1, Math.ceil(events.total / events.page_size));
-  }, [events]);
-
-  const groupedEvents = useMemo(
-    () => groupedByYear(events?.items ?? []),
-    [events?.items]
-  );
+  const items = events?.items ?? [];
+  const upcomingEvents = useMemo(() => items.filter(isUpcoming).slice(0, 4), [items]);
+  const recentEvents = useMemo(() => [...items].sort((a, b) => b.start_date.localeCompare(a.start_date)).slice(0, 4), [items]);
 
   async function refresh() {
     try {
@@ -69,7 +60,7 @@ export function App() {
           status: status || undefined,
           category: category || undefined,
           year: year || undefined,
-          page,
+          pageSize: 100,
         }),
         getOverviewSummary(userId),
         getFinancialSummary(userId),
@@ -86,59 +77,58 @@ export function App() {
 
   useEffect(() => {
     void refresh();
-  }, [userId, status, category, year, page]);
+  }, [userId, status, category, year]);
 
   useEffect(() => {
     if (!selectedEventId) {
       setSelectedEvent(null);
-      setDetailError("");
       return;
     }
-
     const selectedId = selectedEventId;
     let cancelled = false;
-
     async function loadEvent() {
       try {
         setIsDetailLoading(true);
-        setDetailError("");
         const event = await getEvent(userId, selectedId);
-        if (!cancelled) {
-          setSelectedEvent(event);
-        }
+        if (!cancelled) setSelectedEvent(event);
       } catch (err) {
-        if (!cancelled) {
-          setSelectedEvent(null);
-          setDetailError(
-            err instanceof Error ? err.message : "Failed to load event details"
-          );
-        }
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load event details");
       } finally {
-        if (!cancelled) {
-          setIsDetailLoading(false);
-        }
+        if (!cancelled) setIsDetailLoading(false);
       }
     }
-
     void loadEvent();
-
     return () => {
       cancelled = true;
     };
   }, [selectedEventId, userId]);
 
   useEffect(() => {
-    if (!selectedEventId) {
-      return;
+    let cancelled = false;
+    async function hydrateMemories() {
+      if (items.length === 0) {
+        setMemoriesByEvent({});
+        return;
+      }
+      const results = await Promise.all(
+        items.slice(0, 12).map(async (event) => {
+          try {
+            const response = await getMemories(userId, event.id);
+            return [event.id, response.items] as const;
+          } catch {
+            return [event.id, []] as const;
+          }
+        })
+      );
+      if (!cancelled) {
+        setMemoriesByEvent(Object.fromEntries(results));
+      }
     }
-
-    const hasSelectedEvent = events?.items.some((event) => event.id === selectedEventId);
-    if (!hasSelectedEvent) {
-      setSelectedEventId(null);
-      setSelectedEvent(null);
-      setDetailError("");
-    }
-  }, [events, selectedEventId]);
+    void hydrateMemories();
+    return () => {
+      cancelled = true;
+    };
+  }, [items, userId]);
 
   async function handleCreate(payload: CreateEventPayload): Promise<string | null> {
     try {
@@ -146,223 +136,108 @@ export function App() {
       await refresh();
       return null;
     } catch (err) {
-      if (err instanceof ApiError) {
-        return err.message;
-      }
+      if (err instanceof ApiError) return err.message;
       return "Failed to create event.";
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(eventId: string) {
     try {
-      setError("");
-      if (selectedEventId === id) {
+      if (selectedEventId === eventId) {
         setSelectedEventId(null);
         setSelectedEvent(null);
-        setDetailError("");
       }
-      await deleteEvent(userId, id);
+      await deleteEvent(userId, eventId);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete event");
     }
   }
 
+  function handleEventUpdated(updatedEvent: EventItem) {
+    setSelectedEvent(updatedEvent);
+    setEvents((current) =>
+      current
+        ? { ...current, items: current.items.map((item) => (item.id === updatedEvent.id ? updatedEvent : item)) }
+        : current
+    );
+    void refresh();
+  }
+
   return (
-    <main className="container">
-      <header className="topbar">
-        <h1>Sanchara</h1>
-        <div className="row user-controls">
-          <label>
-            Quick user
-            <select
-              value={QUICK_USERS.includes(userId) ? userId : "custom"}
-              onChange={(e) => {
-                if (e.target.value !== "custom") {
-                  setPage(1);
-                  setSelectedEventId(null);
-                  setUserId(e.target.value);
-                }
-              }}
-            >
-              {QUICK_USERS.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-              <option value="custom">custom</option>
-            </select>
-          </label>
-          <label>
-            User id
-            <input
-              value={userId}
-              onChange={(e) => {
-                setPage(1);
-                setSelectedEventId(null);
-                setUserId(e.target.value || "demo-user");
-              }}
-            />
-          </label>
-        </div>
-      </header>
-
-      <DashboardCards overview={overview} financial={financial} />
-
-      <section className="panel filters">
-        <h3>Filters</h3>
-        <div className="row">
-          <select
-            value={status}
-            onChange={(e) => {
-              setPage(1);
-              setSelectedEventId(null);
-              setStatus(e.target.value);
-            }}
-          >
-            <option value="">all status</option>
-            <option value="planned">planned</option>
-            <option value="in-progress">in-progress</option>
-            <option value="completed">completed</option>
-          </select>
-          <input
-            placeholder="category"
-            value={category}
-            onChange={(e) => {
-              setPage(1);
-              setSelectedEventId(null);
-              setCategory(e.target.value);
-            }}
-          />
-          <input
-            placeholder="year"
-            value={year}
-            onChange={(e) => {
-              setPage(1);
-              setSelectedEventId(null);
-              setYear(e.target.value);
-            }}
-          />
-        </div>
-      </section>
-
-      <EventForm onSubmit={handleCreate} />
-
-      <section className="workspace-grid">
-        <section className="panel">
-          <h3>Events</h3>
-          {isLoading && <p className="loading">Loading data...</p>}
-          {error && <p className="error">{error}</p>}
-          {!isLoading && !events?.items?.length && (
-            <p>No events yet. Add your first life event ✨</p>
-          )}
-
-          {Object.entries(groupedEvents)
-            .sort(([a], [b]) => Number(a) - Number(b))
-            .map(([groupYear, yearEvents]) => (
-              <div key={groupYear} className="year-group">
-                <h4>{groupYear}</h4>
-                <ul className="event-list">
-                  {yearEvents.map((event) => {
-                    const isSelected = event.id === selectedEventId;
-
-                    return (
-                      <li key={event.id} className={isSelected ? "event-list-item selected" : "event-list-item"}>
-                        <button
-                          type="button"
-                          className="event-button"
-                          onClick={() => setSelectedEventId(event.id)}
-                        >
-                          <div>
-                            <strong>{event.title}</strong>
-                            <p>
-                              {event.start_date} · {event.status} · {event.priority}
-                            </p>
-                            <p>{event.timeline_phase || "-"}</p>
-                            {event.is_financial && (
-                              <div className="finance-meta">
-                                <span
-                                  className={`badge ${
-                                    event.is_fully_funded ? "badge-funded" : "badge-progress"
-                                  }`}
-                                >
-                                  {event.is_fully_funded ? "Fully funded" : "Funding in progress"}
-                                </span>
-                                <div className="progress-wrap">
-                                  <div
-                                    className="progress-bar"
-                                    style={{ width: `${event.savings_progress_pct ?? 0}%` }}
-                                  />
-                                </div>
-                                <small>{event.savings_progress_pct ?? 0}%</small>
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                        <button type="button" onClick={() => void handleDelete(event.id)}>
-                          Delete
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-
-          <div className="row">
-            <button
-              disabled={page <= 1 || isLoading}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Prev
-            </button>
-            <span>
-              Page {page} / {totalPages}
-            </span>
-            <button
-              disabled={page >= totalPages || isLoading}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </button>
+    <main className="app-shell">
+      <SidebarNav activeView={activeView} onChange={setActiveView} />
+      <section className="app-main">
+        <header className="hero panel">
+          <div>
+            <p className="hero-kicker">Life planning platform</p>
+            <h1>Sanchara</h1>
+            <p className="hero-copy">A personal timeline for planning milestones, tasks, savings, notes, and memories.</p>
           </div>
-        </section>
+          <div className="hero-controls">
+            <label>
+              Quick user
+              <select value={QUICK_USERS.includes(userId) ? userId : "custom"} onChange={(e) => setUserId(e.target.value === "custom" ? userId : e.target.value)}>
+                {QUICK_USERS.map((u) => <option key={u} value={u}>{u}</option>)}
+                <option value="custom">custom</option>
+              </select>
+            </label>
+            <label>
+              User id
+              <input value={userId} onChange={(e) => setUserId(e.target.value || "demo-user")} />
+            </label>
+          </div>
+        </header>
 
-        <section>
-          {!selectedEventId && (
-            <aside className="panel detail-empty-state">
-              <h3>Select an event</h3>
-              <p>
-                Choose a milestone from the timeline list to open overview, savings,
-                and notes details.
-              </p>
-            </aside>
-          )}
-          {isDetailLoading && selectedEventId && (
-            <aside className="panel detail-empty-state">
-              <h3>Loading event</h3>
-              <p className="loading">Fetching the selected milestone...</p>
-            </aside>
-          )}
-          {detailError && !isDetailLoading && (
-            <aside className="panel detail-empty-state">
-              <h3>Unable to load details</h3>
-              <p className="error">{detailError}</p>
-            </aside>
-          )}
-          {selectedEvent && !isDetailLoading && !detailError && (
-            <EventDetailsPanel
-              key={selectedEvent.id}
-              event={selectedEvent}
-              userId={userId}
-              onClose={() => {
-                setSelectedEventId(null);
-                setSelectedEvent(null);
-                setDetailError("");
-              }}
-            />
-          )}
-        </section>
+        <div className="filters-bar panel">
+          <label><span>Status</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">all</option><option value="planned">planned</option><option value="in-progress">in-progress</option><option value="completed">completed</option></select></label>
+          <label><span>Category</span><input value={category} placeholder="career, finance..." onChange={(e) => setCategory(e.target.value)} /></label>
+          <label><span>Year</span><input value={year} placeholder="2028" onChange={(e) => setYear(e.target.value)} /></label>
+        </div>
+
+        {error && <p className="error panel">{error}</p>}
+        {isLoading && <p className="loading panel">Loading Sanchara workspace...</p>}
+
+        {activeView === "dashboard" && (
+          <div className="view-stack">
+            <DashboardCards overview={overview} financial={financial} />
+            <section className="panel dashboard-grid">
+              <article className="dashboard-card">
+                <p className="section-kicker">Upcoming</p>
+                <h3>Next milestones</h3>
+                {upcomingEvents.map((event) => <button key={event.id} type="button" className="list-link" onClick={() => { setSelectedEventId(event.id); setActiveView("timeline"); }}>{event.title} · {event.start_date}</button>)}
+                {upcomingEvents.length === 0 && <p>No upcoming milestones yet.</p>}
+              </article>
+              <article className="dashboard-card">
+                <p className="section-kicker">Recent</p>
+                <h3>Latest timeline entries</h3>
+                {recentEvents.map((event) => <button key={event.id} type="button" className="list-link" onClick={() => { setSelectedEventId(event.id); setActiveView("timeline"); }}>{event.title} · {event.category}</button>)}
+                {recentEvents.length === 0 && <p>No events yet.</p>}
+              </article>
+            </section>
+            <EventForm onSubmit={handleCreate} />
+          </div>
+        )}
+
+        {activeView === "timeline" && (
+          <div className="workspace-grid">
+            <div className="view-stack">
+              <TimelineBoard events={items} selectedEventId={selectedEventId} onSelect={setSelectedEventId} onDelete={(eventId) => void handleDelete(eventId)} />
+              <EventForm onSubmit={handleCreate} />
+            </div>
+            <section>
+              {!selectedEventId && <aside className="panel detail-empty-state"><h3>Select an event</h3><p>Choose a milestone to open its full workspace.</p></aside>}
+              {isDetailLoading && <aside className="panel detail-empty-state"><p className="loading">Loading event workspace...</p></aside>}
+              {selectedEvent && !isDetailLoading && (
+                <EventDetailsPanel event={selectedEvent} userId={userId} onClose={() => { setSelectedEventId(null); setSelectedEvent(null); }} onEventUpdated={handleEventUpdated} />
+              )}
+            </section>
+          </div>
+        )}
+
+        {activeView === "savings" && <SavingsBoard events={items} financial={financial} onSelect={(eventId) => { setSelectedEventId(eventId); setActiveView("timeline"); }} />}
+
+        {activeView === "memories" && <MemoriesBoard events={items} memoriesByEvent={memoriesByEvent} onSelect={(eventId) => { setSelectedEventId(eventId); setActiveView("timeline"); }} />}
       </section>
     </main>
   );
