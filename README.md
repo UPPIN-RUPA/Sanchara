@@ -1,105 +1,262 @@
 # Sanchara
 
-Sanchara is a personal life-planning and timeline app. It helps you map major life events (career, education, finances, relationships, health, etc.), attach savings goals and notes to each one, and zoom into any period to see what you’ve planned and what you’ve accomplished.
+Sanchara is a life planning and memory timeline application.
 
-## Tech Stack
+It is built around one core idea:
+
+**Plan the future, track the journey, preserve the memories.**
+
+Sanchara is not a work dashboard, not a Jira-like tracker, and not a corporate productivity tool. It is a calmer personal system for long-term milestones, life chapters, savings goals, and meaningful moments.
+
+## What Sanchara Is
+
+Sanchara is meant to feel like:
+
+- a personal future map
+- a digital life journal
+- a goal and milestone planner
+- a savings tracker for long-term dreams
+- a memory archive for meaningful life events
+
+Examples of plans Sanchara is designed for:
+
+- career foundation
+- marriage planning
+- buying land
+- building a house
+- starting a farm ecosystem
+- travel dreams
+- retirement vision
+
+## Current Product State
+
+This repository is now a real full-stack product foundation.
+
+### Public entry layer
+
+The frontend now has a separate public experience:
+
+- Landing page
+- Login page
+- Signup page
+
+These pages are visually separate from the authenticated app shell and establish Sanchara as a premium life-planning product, not just an internal tool screen.
+
+### Authenticated application
+
+The authenticated experience now has:
+
+- Dashboard
+- Timeline
+- Plans
+- Savings
+- Memories
+- Search
+- Archive
+- Settings
+- Year View
+
+The dashboard, timeline, and year view now form the beginning of the real core planning flow.
+
+## Built Features
 
 ### Backend
 
-- Language: **Python 3.11+**
-- Framework: **FastAPI**
-- ASGI Server: **Uvicorn**
-- Database: **MongoDB** (via `motor` – async MongoDB driver)
-- Testing: **pytest**
-- Linting & Formatting: **Ruff** (lint) + **Black** (format)
-- Env management: `python -m venv` (or `uv` / `pip`)
+The backend is implemented with FastAPI and MongoDB-oriented repositories.
 
-### Runtime & Tooling Requirements
+Currently built:
 
-- Python **3.11+**
-- MongoDB **6.x+** (local or remote cluster)
-- `pip` (or `uv`) for installing dependencies
-- `git` for version control
+- event CRUD
+- summary endpoints
+- task CRUD nested under events
+- memory CRUD nested under events
+- service-layer validation for business rules
+- financial progress calculations
+- user-scoped behavior through `X-User-Id`
+- backend tests passing with `pytest`
 
-## Project Structure
+Important backend validation already enforced:
+
+- financial events require `savings_target`
+- completed events cannot be in the future
+- updates cannot create invalid date ranges
+
+### Frontend
+
+The frontend now includes:
+
+- public landing, login, and signup flow
+- authenticated app shell with shared sidebar and header
+- dashboard command center
+- signature timeline workspace
+- year view page
+- plans workspace
+- savings page
+- memories page
+- archive page
+- settings page
+
+### Timeline experience
+
+The timeline is now structured as a real product surface, not just a list:
+
+- timeline header
+- filter panel
+- horizontal canvas
+- year ruler
+- stacked event lanes
+- milestone nodes
+- preview panel
+- zoom/navigation strip
+- year handoff into a year-focused view
+
+## Tech Stack
+
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- CSS-based design system in the repo
+
+### Backend
+
+- Python 3.11+
+- FastAPI
+- Uvicorn
+- MongoDB / Motor
+- pytest
+
+## Current Frontend Architecture
+
+The frontend is now structured around shared layout primitives and page/domain components.
 
 ```text
-sanchara/
-├─ backend/
-│  ├─ app/
-│  │  ├─ __init__.py
-│  │  ├─ core/
-│  │  │  ├─ config.py
-│  │  ├─ api/
-│  │  │  ├─ __init__.py
-│  │  │  ├─ v1/
-│  │  │  │  ├─ __init__.py
-│  │  │  │  ├─ routes_health.py
-│  │  ├─ models/
-│  │  │  ├─ __init__.py
-│  │  ├─ main.py
-│  ├─ tests/
-│  │  ├─ __init__.py
-│  │  ├─ test_health.py
-│  ├─ pyproject.toml
-│  ├─ README.md
-├─ .gitignore
-├─ .env.example
-├─ README.md
+frontend/src/
+├── components/
+│   ├── auth/
+│   ├── dashboard/
+│   ├── landing/
+│   ├── layout/
+│   ├── shared/
+│   ├── timeline/
+│   └── year/
+├── data/
+├── pages/
+├── types/
+└── lib/
 ```
 
-## Problem Statement
+Important structure already in place:
 
-Most planning tools focus on short-term to-do lists or isolated goals. It’s hard to:
+- `AppShell`
+- `Sidebar`
+- `HeaderBar`
+- `ContentContainer`
+- `AuthLayout`
+- dedicated page components
+- dedicated dashboard components
+- dedicated timeline components
+- shared frontend types
+- shared mock data
 
-- See your *whole life* timeline in one place.
-- Connect big events (like moving countries, marriage, buying land, or starting a PhD) with the savings and preparation they require.
-- Store both **plans** (future events) and **memories** (past events) in a single, structured view.
+This matters because Sanchara has crossed the line from a prototype blob into a structured frontend.
 
-Sanchara aims to be a single place where you can plan, track, and reflect on your life journey.
+## Current Backend Architecture
 
-## MVP Scope
+The backend is layered around:
 
-For the first version, Sanchara will provide:
+- API routes
+- services
+- repositories
+- models
 
-- **User timelines**: Create a timeline for a user (single-user focused at first).
-- **Events**:
-  - Title, date (or date range), category (e.g., career, finance, personal).
-  - Basic description / notes.
-  - Simple status: `planned`, `in-progress`, `completed`.
-  - Priority, timeline phase, and linked-event references for future dependency mapping.
-- **Savings / budget link**:
-  - Optional estimated cost, savings target, actual cost, and amount saved for an event.
-- **API access**:
-  - REST endpoints to create, list, fetch, update, and delete events (`/api/v1/events`).
-  - A **health/status endpoint** to verify the service is running (`/api/v1/health`).
-- **Simple web client (later)**:
-  - A basic UI to list events on a timeline view (can be a separate repo or a `frontend/` folder added later).
+Important domains already present:
 
-The initial focus of this repo is the **backend API**, with room to grow into a full stack application.
+- events
+- tasks
+- memories
+- summaries
 
+## Local Development
 
-## Current Backend Progress
-
-- Persistent event storage is implemented using MongoDB (`motor`).
-- Events API supports query filtering by status, category, and year.
-
-
-## Backend API Enhancements
-
-- Events are persisted in MongoDB and soft-deleted (with audit timestamps).
-- `GET /api/v1/events` supports filtering (`status`, `category`, `year`), pagination (`page`, `page_size`), and sorting (`sort_by`, `sort_order`).
-- Event responses include computed savings insights (`savings_progress_pct`, `is_fully_funded`) for financial milestones.
-
-## Local Infrastructure
-
-Run backend + MongoDB with Docker Compose:
+### Frontend
 
 ```bash
-docker-compose up --build
+cd frontend
+npm install
+npm run dev
 ```
 
+Production build:
 
-- Added summary endpoints for overview and financial rollups.
-- Added user-scoped events via `X-User-Id` (defaults to `demo-user`).
-- Added seed script (`backend/scripts/seed_demo_events.py`) and CI workflow (`.github/workflows/backend-ci.yml`).
+```bash
+cd frontend
+npm run build
+```
+
+### Backend
+
+```bash
+cd backend
+python3.11 -m venv .venv
+source .venv/bin/activate
+python3.11 -m pip install -e '.[dev]'
+uvicorn app.main:app --reload
+```
+
+Run tests:
+
+```bash
+cd backend
+APP_ENV=test python3.11 -m pytest
+```
+
+## Verified Status
+
+At the current state of this repository:
+
+- frontend production build passes
+- backend tests pass
+
+## Product Direction From Here
+
+The next major phase is the core plan lifecycle:
+
+- `CreateEventPage`
+- `EventDetailPage`
+
+After that, the product should continue into:
+
+- richer savings UI
+- richer memories UI
+- search refinement
+- archive refinement
+- settings depth
+- later real routing and persistence refinement on the frontend
+
+## Current Build Sequence Already Completed
+
+The product has progressed in this order:
+
+1. backend event, task, and memory foundation
+2. frontend MVP screens
+3. full app shell
+4. public entry layer
+5. dashboard and timeline restructuring
+6. timeline componentization
+7. year view
+
+That sequence matters because the architecture is now stable enough to keep building without collapsing back into one oversized `App.tsx`.
+
+## Philosophy
+
+Sanchara should always remain grounded in this product identity:
+
+- future planning
+- long-term goals
+- timeline visualization
+- savings for dreams
+- emotional memory archive
+
+That is the product contract this repository now follows.

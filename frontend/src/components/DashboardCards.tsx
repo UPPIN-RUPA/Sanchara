@@ -1,33 +1,40 @@
-import type { FinancialSummary, OverviewSummary } from "../lib/api";
-
 type Props = {
-  overview: OverviewSummary | null;
-  financial: FinancialSummary | null;
+  totalEvents: number;
+  activePlans: number;
+  upcomingMilestones: number;
+  completedMilestones: number;
+  lifeProgress: number;
 };
 
-const CARD_CONFIG = [
-  { label: "Total events", key: "total", tone: "sand" },
-  { label: "Planned now", key: "planned", tone: "sea" },
-  { label: "Savings target", key: "target", tone: "sky" },
-  { label: "Amount saved", key: "saved", tone: "forest" },
-] as const;
-
-export function DashboardCards({ overview, financial }: Props) {
-  const values = {
-    total: overview?.total_events ?? "-",
-    planned: overview?.by_status?.planned ?? 0,
-    target: financial ? `₹${financial.total_savings_target.toLocaleString()}` : "-",
-    saved: financial ? `₹${financial.total_amount_saved.toLocaleString()}` : "-",
-  };
-
+export function DashboardCards({
+  totalEvents,
+  activePlans,
+  upcomingMilestones,
+  completedMilestones,
+  lifeProgress,
+}: Props) {
   return (
-    <section className="cards">
-      {CARD_CONFIG.map((card) => (
-        <article key={card.key} className={`card stat-card tone-${card.tone}`}>
-          <span className="stat-card-label">{card.label}</span>
-          <p>{values[card.key]}</p>
-        </article>
-      ))}
+    <section className="cards editorial-cards dashboard-summary-cards">
+      <article className="card editorial-card">
+        <span className="stat-card-label">Active plans</span>
+        <p>{activePlans}</p>
+      </article>
+      <article className="card editorial-card">
+        <span className="stat-card-label">Upcoming milestones</span>
+        <p>{upcomingMilestones}</p>
+      </article>
+      <article className="card editorial-card">
+        <span className="stat-card-label">Completed milestones</span>
+        <p>{completedMilestones}</p>
+      </article>
+      <article className="card editorial-card">
+        <span className="stat-card-label">Life progress</span>
+        <p>{lifeProgress}%</p>
+      </article>
+      <article className="card editorial-card wide-card">
+        <span className="stat-card-label">Total plans mapped</span>
+        <p>{totalEvents}</p>
+      </article>
     </section>
   );
 }

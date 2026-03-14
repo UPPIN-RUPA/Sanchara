@@ -1,0 +1,89 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#1A140F"/>
+  <g opacity="0.82">
+    <path d="M145 264C193 212 246 182 332 176C414 170 493 202 556 258C604 300 620 340 612 392C604 444 562 490 493 520C425 550 350 560 278 548C204 536 132 496 104 432C74 364 94 312 145 264Z" fill="#34271F"/>
+    <path d="M611 204C663 172 719 164 770 178C812 190 842 218 874 238C910 262 946 266 994 258C1068 246 1153 264 1212 310C1264 350 1288 402 1282 454C1276 506 1239 554 1186 586C1132 618 1065 634 998 630C934 626 886 594 842 562C798 530 759 514 704 514C647 514 587 490 548 446C510 404 499 358 513 312C527 268 561 236 611 204Z" fill="#3A2C22"/>
+    <path d="M1188 642C1238 626 1286 628 1334 646C1386 666 1436 706 1464 758C1480 788 1480 818 1461 840C1444 860 1411 868 1378 866C1344 864 1317 848 1286 842C1255 836 1221 842 1193 830C1164 818 1145 786 1142 754C1138 714 1148 686 1188 642Z" fill="#362920"/>
+  </g>
+
+  <g opacity="0.22" stroke="#8B694F" stroke-width="1.2">
+    <path d="M98 238C164 198 248 164 338 158C445 151 548 188 628 254"/>
+    <path d="M510 308C554 252 616 208 708 182C790 160 882 174 958 210C1020 240 1088 250 1170 270C1236 286 1300 324 1338 374"/>
+    <path d="M1158 644C1238 620 1336 638 1412 696C1448 724 1478 766 1492 812"/>
+  </g>
+
+  <g opacity="0.18" stroke="#6C5240" stroke-width="1">
+    <path d="M0 118H1600"/>
+    <path d="M0 226H1600"/>
+    <path d="M0 334H1600"/>
+    <path d="M0 442H1600"/>
+    <path d="M0 550H1600"/>
+    <path d="M0 658H1600"/>
+    <path d="M0 766H1600"/>
+    <path d="M180 0V900"/>
+    <path d="M380 0V900"/>
+    <path d="M580 0V900"/>
+    <path d="M780 0V900"/>
+    <path d="M980 0V900"/>
+    <path d="M1180 0V900"/>
+    <path d="M1380 0V900"/>
+  </g>
+
+  <g opacity="0.78">
+    <path d="M770 236C796 220 838 216 866 230C894 244 892 280 866 292C842 304 802 302 778 286C758 272 749 248 770 236Z" fill="#8B5E44"/>
+    <path d="M824 300C842 286 874 284 896 294C916 302 922 322 912 338C900 356 870 364 846 358C820 352 804 322 824 300Z" fill="#8B5E44"/>
+    <path d="M790 254C812 242 840 246 852 266C864 288 852 314 826 320C796 326 768 302 768 274C768 264 778 260 790 254Z" fill="#C48B63"/>
+    <path d="M1212 716C1248 696 1299 698 1330 718C1362 738 1364 776 1332 794C1296 814 1240 812 1212 786C1186 762 1184 730 1212 716Z" fill="#B77D57"/>
+  </g>
+
+  <g opacity="0.52" stroke="#B78A69" stroke-width="2">
+    <circle cx="816" cy="266" r="44"/>
+    <circle cx="816" cy="266" r="70"/>
+    <circle cx="854" cy="324" r="32"/>
+    <circle cx="1272" cy="752" r="44"/>
+    <circle cx="1272" cy="752" r="76"/>
+  </g>
+
+  <g stroke="#E0B38A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M807 250L807 282"/>
+    <path d="M795 282H819"/>
+    <path d="M799 266H815"/>
+    <path d="M845 314L845 342"/>
+    <path d="M833 342H857"/>
+    <path d="M1260 736L1260 768"/>
+    <path d="M1246 768H1274"/>
+    <path d="M1284 736L1304 768L1264 768Z"/>
+  </g>
+
+  <g fill="#F4D2B1">
+    <circle cx="806" cy="256" r="4.5"/>
+    <circle cx="846" cy="322" r="4.5"/>
+    <circle cx="872" cy="270" r="4.5"/>
+    <circle cx="1272" cy="748" r="5"/>
+  </g>
+
+  <g opacity="0.9" fill="#EAD4BF" font-family="Georgia, 'Times New Roman', serif">
+    <text x="726" y="182" font-size="34" letter-spacing="8">EUROPE</text>
+    <text x="786" y="246" font-size="20">Paris</text>
+    <text x="853" y="307" font-size="20">Rome</text>
+    <text x="886" y="255" font-size="20">Germany</text>
+    <text x="1196" y="696" font-size="26" letter-spacing="5">AUSTRALIA</text>
+  </g>
+
+  <g opacity="0.78" fill="#D4B397" font-family="'Avenir Next', 'Segoe UI', sans-serif">
+    <text x="776" y="302" font-size="16">Eiffel Tower</text>
+    <text x="868" y="349" font-size="16">Colosseum</text>
+    <text x="900" y="287" font-size="16">Brandenburg Gate</text>
+    <text x="1238" y="792" font-size="16">Sydney Opera House</text>
+  </g>
+
+  <g opacity="0.3" stroke="#C38B67" stroke-width="1.6" stroke-dasharray="5 10">
+    <path d="M807 256C814 268 828 290 846 322"/>
+    <path d="M846 322C860 312 870 292 872 270"/>
+    <path d="M872 270C962 324 1120 498 1272 748"/>
+  </g>
+
+  <g opacity="0.14">
+    <text x="84" y="840" fill="#D8C2AD" font-size="88" font-family="Georgia, 'Times New Roman', serif" letter-spacing="18">WORLD ATLAS</text>
+  </g>
+</svg>

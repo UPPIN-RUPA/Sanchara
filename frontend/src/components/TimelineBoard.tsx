@@ -18,61 +18,52 @@ function groupByYear(items: EventItem[]): Array<[string, EventItem[]]> {
   return Object.entries(grouped).sort(([a], [b]) => Number(a) - Number(b));
 }
 
-function fundingLabel(event: EventItem): string {
-  if (!event.is_financial) {
-    return event.timeline_phase || "non-financial";
-  }
-  return `${event.savings_progress_pct ?? 0}% funded`;
-}
-
 export function TimelineBoard({ events, selectedEventId, onSelect, onDelete }: Props) {
   const grouped = groupByYear(events);
 
   return (
     <section className="panel section-panel timeline-panel">
-      <div className="section-heading">
+      <div className="section-heading timeline-heading">
         <div>
           <p className="section-kicker">Timeline</p>
-          <h3>Life map</h3>
+          <h3>The manuscript of your years</h3>
         </div>
-        <p className="section-copy">Every year becomes a lane for milestones, savings, and next actions.</p>
+        <p className="section-copy">
+          Read the future as chapters, not tickets. Each entry marks a life event, its preparation, and the memory it may one day leave behind.
+        </p>
       </div>
 
       {grouped.length === 0 && <p>No events found for the current filters.</p>}
 
-      <div className="timeline-lane">
+      <div className="manuscript-timeline">
         {grouped.map(([year, yearEvents]) => (
-          <section key={year} className="timeline-year">
-            <div className="timeline-year-header">
-              <span className="timeline-year-badge">{year}</span>
-              <div className="timeline-year-line" />
+          <section key={year} className="manuscript-year">
+            <div className="manuscript-margin">
+              <span className="manuscript-year-label">{year}</span>
             </div>
-            <div className="timeline-cards">
+            <div className="manuscript-column">
               {yearEvents.map((event) => {
                 const selected = selectedEventId === event.id;
                 return (
-                  <article key={event.id} className={selected ? "timeline-card selected" : "timeline-card"}>
-                    <button type="button" className="timeline-card-button" onClick={() => onSelect(event.id)}>
-                      <div className="timeline-meta-row">
-                        <span className="pill">{event.category}</span>
-                        <span className="muted-text">{event.status}</span>
-                      </div>
-                      <h4>{event.title}</h4>
-                      <p>{event.description || event.timeline_phase || "No overview yet."}</p>
-                      <div className="timeline-card-footer">
-                        <small>{fundingLabel(event)}</small>
-                        <small>{event.priority} priority</small>
-                      </div>
-                      {event.is_financial && (
-                        <div className="mini-progress">
-                          <div className="progress-wrap compact">
-                            <div className="progress-bar" style={{ width: `${event.savings_progress_pct ?? 0}%` }} />
-                          </div>
+                  <article key={event.id} className={selected ? "manuscript-entry selected" : "manuscript-entry"}>
+                    <button type="button" className="manuscript-entry-button" onClick={() => onSelect(event.id)}>
+                      <div className="manuscript-dot" />
+                      <div className="manuscript-copy">
+                        <div className="timeline-meta-row">
+                          <span className="pill subtle">{event.category}</span>
+                          <span className="muted-text">{event.status}</span>
                         </div>
-                      )}
+                        <h4>{event.title}</h4>
+                        <p>{event.description || event.timeline_phase || "No overview yet."}</p>
+                        <div className="manuscript-notes">
+                          <small>{event.start_date}</small>
+                          <small>{event.priority} priority</small>
+                          {event.is_financial && <small>{event.savings_progress_pct ?? 0}% funded</small>}
+                        </div>
+                      </div>
                     </button>
                     <button type="button" className="ghost-danger" onClick={() => onDelete(event.id)}>
-                      Delete
+                      Remove
                     </button>
                   </article>
                 );

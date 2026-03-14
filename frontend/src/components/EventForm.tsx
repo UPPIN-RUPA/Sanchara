@@ -31,7 +31,7 @@ export function EventForm({ onSubmit }: Props) {
 
   return (
     <form
-      className="event-form"
+      className="event-form chapter-composer"
       onSubmit={async (event) => {
         event.preventDefault();
         setError("");
@@ -83,13 +83,17 @@ export function EventForm({ onSubmit }: Props) {
     >
       <div className="section-heading compact-heading">
         <div>
-          <p className="section-kicker">Create</p>
-          <h3>Add a new milestone</h3>
+          <p className="section-kicker">New chapter</p>
+          <h3>Place the next milestone on the map</h3>
         </div>
-        <p className="section-copy">Capture the next chapter before it slips away.</p>
+        <p className="section-copy">Write down the event while it is still only a thought, so the year has somewhere to hold it.</p>
       </div>
 
       {error && <p className="error">{error}</p>}
+
+      <div className="composer-note">
+        A chapter can begin as little as a title and a date. Add the finer details later when the shape of it becomes clearer.
+      </div>
 
       <div className="form-grid">
         <label className="form-field form-field-wide">
@@ -130,8 +134,8 @@ export function EventForm({ onSubmit }: Props) {
       <label className="toggle-row">
         <input type="checkbox" checked={isFinancial} onChange={(e) => setIsFinancial(e.target.checked)} />
         <span>
-          <strong>Financial milestone</strong>
-          <small>Track the target amount and current savings for this event.</small>
+          <strong>This chapter needs financial preparation</strong>
+          <small>Keep the target and the amount already set aside in the same place as the event itself.</small>
         </span>
       </label>
 
@@ -147,7 +151,7 @@ export function EventForm({ onSubmit }: Props) {
       </div>
 
       <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Creating milestone..." : "Create milestone"}
+        {isSubmitting ? "Placing chapter..." : "Place chapter on timeline"}
       </button>
     </form>
   );

@@ -23,6 +23,7 @@ type Props = {
   userId: string;
   onClose: () => void;
   onEventUpdated: (event: EventItem) => void;
+  initialTab?: EventTab;
 };
 
 function money(amount?: number | null): string {
@@ -34,8 +35,8 @@ function formatDateRange(startDate: string, endDate?: string | null): string {
   return endDate ? `${startDate} to ${endDate}` : startDate;
 }
 
-export function EventDetailsPanel({ event, userId, onClose, onEventUpdated }: Props) {
-  const [activeTab, setActiveTab] = useState<EventTab>("overview");
+export function EventDetailsPanel({ event, userId, onClose, onEventUpdated, initialTab = "overview" }: Props) {
+  const [activeTab, setActiveTab] = useState<EventTab>(initialTab);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [memories, setMemories] = useState<MemoryItem[]>([]);
   const [workspaceError, setWorkspaceError] = useState("");
@@ -77,6 +78,10 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated }: Pr
     });
     setNotesValue(event.notes ?? "");
   }, [event]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab, event.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -225,14 +230,22 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated }: Pr
   const tabs: EventTab[] = ["overview", "tasks", "savings", "memories", "notes"];
 
   return (
-    <aside className="panel detail-panel">
+    <aside className="panel detail-panel chapter-desk">
       <div className="detail-header">
         <div>
-          <p className="detail-kicker">Event workspace</p>
+          <p className="detail-kicker">Chapter desk</p>
           <h3>{event.title}</h3>
-          <p className="detail-subtitle">{event.category} · {event.status} · {event.priority}</p>
+          <p className="detail-subtitle">
+            {event.category} · {event.status} · {event.priority}
+          </p>
         </div>
         <button type="button" onClick={onClose}>Close</button>
+      </div>
+
+      <div className="desk-intro">
+        <p>
+          Keep this chapter together here: its outline, the work it requires, the provisions it needs, and the fragments of memory it may gather.
+        </p>
       </div>
 
       <div className="tab-row" role="tablist" aria-label="Event detail tabs">
@@ -247,7 +260,10 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated }: Pr
       {isLoadingChildren && <p className="loading">Loading event workspace...</p>}
 
       {activeTab === "overview" && (
-        <form className="detail-stack" onSubmit={handleOverviewSubmit}>
+        <form className="detail-stack manuscript-editor" onSubmit={handleOverviewSubmit}>
+          <div className="detail-note">
+            Describe the event as if you are leaving context for your future self, not filling a database row.
+          </div>
           <div className="detail-grid">
             <label className="field-card"><span>Title</span><input value={overviewForm.title} onChange={(e) => setOverviewForm((c) => ({ ...c, title: e.target.value }))} /></label>
             <label className="field-card"><span>Category</span><input value={overviewForm.category} onChange={(e) => setOverviewForm((c) => ({ ...c, category: e.target.value }))} /></label>
@@ -258,21 +274,22 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated }: Pr
             <label className="field-card detail-card-wide"><span>Timeline phase</span><input value={overviewForm.timeline_phase} onChange={(e) => setOverviewForm((c) => ({ ...c, timeline_phase: e.target.value }))} /></label>
             <label className="field-card detail-card-wide"><span>Description</span><textarea rows={4} value={overviewForm.description} onChange={(e) => setOverviewForm((c) => ({ ...c, description: e.target.value }))} /></label>
           </div>
-          <button type="submit" disabled={isSavingEvent}>{isSavingEvent ? "Saving..." : "Save overview"}</button>
+          <button type="submit" disabled={isSavingEvent}>{isSavingEvent ? "Saving..." : "Preserve overview"}</button>
         </form>
       )}
 
       {activeTab === "tasks" && (
         <div className="detail-stack">
-          <form className="task-form" onSubmit={handleTaskCreate}>
-            <h4>Add task</h4>
+          <form className="task-form manuscript-editor" onSubmit={handleTaskCreate}>
+            <h4>Working notes</h4>
+            <p className="helper-text">Small practical steps that make this chapter more likely to happen well.</p>
             <input value={taskForm.title} placeholder="Task title" onChange={(e) => setTaskForm((c) => ({ ...c, title: e.target.value }))} />
             <input value={taskForm.notes} placeholder="Notes" onChange={(e) => setTaskForm((c) => ({ ...c, notes: e.target.value }))} />
             <div className="row">
               <input type="date" value={taskForm.due_date} onChange={(e) => setTaskForm((c) => ({ ...c, due_date: e.target.value }))} />
               <select value={taskForm.priority} onChange={(e) => setTaskForm((c) => ({ ...c, priority: e.target.value as "low" | "medium" | "high" }))}><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
             </div>
-            <button type="submit">Add task</button>
+            <button type="submit">Add working note</button>
           </form>
           <ul className="task-list">
             {tasks.map((task) => (
@@ -281,13 +298,17 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated }: Pr
                 <button type="button" onClick={() => void removeTask(task.id)}>Delete</button>
               </li>
             ))}
-            {tasks.length === 0 && <li className="empty-inline">No tasks yet.</li>}
+            {tasks.length === 0 && <li className="empty-inline">No working notes yet.</li>}
           </ul>
         </div>
       )}
 
       {activeTab === "savings" && (
         <div className="detail-grid">
+          <article className="detail-card detail-card-wide ledger-note">
+            <h4>Provision ledger</h4>
+            <p>Money here is not abstract. It is the quiet preparation that lets this event arrive without strain.</p>
+          </article>
           <article className="detail-card"><h4>Timeline</h4><p>{formatDateRange(event.start_date, event.end_date)}</p></article>
           <article className="detail-card"><h4>Savings target</h4><p>{money(event.savings_target)}</p></article>
           <article className="detail-card"><h4>Saved</h4><p>{money(event.amount_saved)}</p></article>
@@ -299,8 +320,9 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated }: Pr
 
       {activeTab === "memories" && (
         <div className="detail-stack">
-          <form className="task-form" onSubmit={handleMemoryCreate}>
-            <h4>Add memory</h4>
+          <form className="task-form manuscript-editor" onSubmit={handleMemoryCreate}>
+            <h4>Archive fragment</h4>
+            <p className="helper-text">Capture the note, image, document, or reflection that gives this chapter emotional texture.</p>
             <input value={memoryForm.title} placeholder="Memory title" onChange={(e) => setMemoryForm((c) => ({ ...c, title: e.target.value }))} />
             <input value={memoryForm.description} placeholder="Description" onChange={(e) => setMemoryForm((c) => ({ ...c, description: e.target.value }))} />
             <div className="row">
@@ -308,11 +330,11 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated }: Pr
               <select value={memoryForm.memory_type} onChange={(e) => setMemoryForm((c) => ({ ...c, memory_type: e.target.value as NonNullable<CreateMemoryPayload["memory_type"]> }))}><option value="reflection">reflection</option><option value="photo">photo</option><option value="video">video</option><option value="document">document</option></select>
             </div>
             <input value={memoryForm.asset_url} placeholder="Asset URL (optional)" onChange={(e) => setMemoryForm((c) => ({ ...c, asset_url: e.target.value }))} />
-            <button type="submit">Add memory</button>
+            <button type="submit">Add fragment</button>
           </form>
           <div className="board-grid compact-grid">
             {memories.map((memory) => (
-              <article key={memory.id} className="board-card memory-card">
+              <article key={memory.id} className="board-card memory-card archive-card">
                 <div className="timeline-meta-row"><span className="pill subtle">{memory.memory_type}</span><span className="muted-text">{memory.captured_on || event.start_date}</span></div>
                 <h4>{memory.title}</h4>
                 <p>{memory.description || "No description"}</p>
@@ -320,15 +342,18 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated }: Pr
                 <button type="button" className="ghost-danger" onClick={() => void removeMemory(memory.id)}>Delete</button>
               </article>
             ))}
-            {memories.length === 0 && <p className="empty-inline">No memories captured yet.</p>}
+            {memories.length === 0 && <p className="empty-inline">No archive fragments yet.</p>}
           </div>
         </div>
       )}
 
       {activeTab === "notes" && (
-        <form className="detail-stack" onSubmit={handleNotesSubmit}>
+        <form className="detail-stack manuscript-editor" onSubmit={handleNotesSubmit}>
+          <div className="detail-note">
+            Use this space like a margin in a book: what you felt, what changed, what should not be forgotten.
+          </div>
           <label className="field-card detail-card-wide"><span>Reflections and notes</span><textarea rows={10} value={notesValue} onChange={(e) => setNotesValue(e.target.value)} /></label>
-          <button type="submit" disabled={isSavingEvent}>{isSavingEvent ? "Saving..." : "Save notes"}</button>
+          <button type="submit" disabled={isSavingEvent}>{isSavingEvent ? "Saving..." : "Preserve notes"}</button>
         </form>
       )}
     </aside>
