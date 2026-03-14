@@ -9,6 +9,7 @@ export type SavingsGoal = {
 
 export type ActivityItem = {
   id: string;
+  planId?: string;
   title: string;
   detail: string;
   date: string;

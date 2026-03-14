@@ -1,6 +1,4 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { EventDetailsPanel } from "../components/EventDetailsPanel";
-import { EventForm } from "../components/EventForm";
 import { MemoriesBoard } from "../components/MemoriesBoard";
 import { SavingsBoard } from "../components/SavingsBoard";
 import { AppShell } from "../components/layout/AppShell";
@@ -23,6 +21,8 @@ import {
   type OverviewSummary,
 } from "../lib/api";
 import { DashboardPage } from "./DashboardPage";
+import { CreateEventPage } from "./CreateEventPage";
+import { EventDetailPage } from "./EventDetailPage";
 import { TimelinePage } from "./TimelinePage";
 import { YearViewPage } from "./YearViewPage";
 import type { View } from "../types/navigation";
@@ -69,7 +69,6 @@ export function AppWorkspace() {
   const [financial, setFinancial] = useState<FinancialSummary | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
-  const [detailTab, setDetailTab] = useState<DetailTab>("overview");
   const [memoriesByEvent, setMemoriesByEvent] = useState<Record<string, MemoryItem[]>>({});
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -223,56 +222,21 @@ export function AppWorkspace() {
     void refresh();
   }
 
-  function openEvent(eventId: string, targetView: View = "timeline") {
+  function openEvent(eventId: string, targetView: View = "event-detail") {
     setSelectedEventId(eventId);
     setActiveView(targetView);
   }
 
   function openFullDetails(tab: DetailTab = "overview") {
-    setDetailTab(tab);
-    setActiveView("plans");
-  }
-
-  function renderDetailPanel(emptyTitle: string, emptyCopy: string) {
-    if (!selectedEventId) {
-      return (
-        <aside className="panel detail-empty-state">
-          <h3>{emptyTitle}</h3>
-          <p>{emptyCopy}</p>
-        </aside>
-      );
-    }
-
-    if (isDetailLoading) {
-      return (
-        <aside className="panel detail-empty-state">
-          <p className="loading">Loading event workspace...</p>
-        </aside>
-      );
-    }
-
-    if (selectedEvent) {
-      return (
-        <EventDetailsPanel
-          event={selectedEvent}
-          userId={userId}
-          initialTab={detailTab}
-          onClose={() => {
-            setSelectedEventId(null);
-            setSelectedEvent(null);
-          }}
-          onEventUpdated={handleEventUpdated}
-        />
-      );
-    }
-
-    return null;
+    setActiveView("event-detail");
   }
 
   const viewMeta: Record<View, { title: string; subtitle: string }> = {
     dashboard: { title: "Dashboard", subtitle: "A calm command center for the journey you are intentionally building." },
     timeline: { title: "Timeline", subtitle: "See your life plans across years, milestones, and chapters." },
     year: { title: `${focusedYear}`, subtitle: "Understand what this year means in the larger life plan." },
+    "create-event": { title: "Create Plan", subtitle: "Add a meaningful milestone, dream, or life chapter to the map." },
+    "event-detail": { title: selectedEvent?.title ?? "Plan Detail", subtitle: "Read the full story of a plan and manage it deeply." },
     plans: { title: "Plans", subtitle: "Create, organize, and revisit the milestones shaping your future." },
     savings: { title: "Savings", subtitle: "Track the money behind the dreams you are preparing to live." },
     memories: { title: "Memories", subtitle: "Keep the emotional record of moments that shaped the journey." },
@@ -296,7 +260,7 @@ export function AppWorkspace() {
         }
       />
       <ContentContainer>
-        {activeView !== "settings" && (
+        {!["settings", "create-event", "event-detail"].includes(activeView) && (
           <div className="filters-bar panel quiet-panel">
             <label><span>Status</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">all</option><option value="planned">planned</option><option value="in-progress">in-progress</option><option value="completed">completed</option></select></label>
             <label><span>Category</span><input value={category} placeholder="career, finance..." onChange={(e) => setCategory(e.target.value)} /></label>
@@ -319,8 +283,8 @@ export function AppWorkspace() {
             quickUsers={QUICK_USERS}
             onUserChange={setUserId}
             upcomingEvents={upcomingEvents}
-            onOpenEvent={openEvent}
-            onGoToPlans={() => setActiveView("plans")}
+            onOpenEvent={(eventId) => openEvent(eventId, "event-detail")}
+            onGoToPlans={() => setActiveView("create-event")}
             onGoToTimeline={() => setActiveView("timeline")}
             onGoToMemories={() => setActiveView("memories")}
             onGoToYear={() => {
@@ -340,7 +304,7 @@ export function AppWorkspace() {
             memoriesByEvent={memoriesByEvent}
             selectedEvent={selectedEvent}
             onSelect={(eventId) => openEvent(eventId, "timeline")}
-            onAddPlan={() => setActiveView("plans")}
+            onAddPlan={() => setActiveView("create-event")}
             onOpenFullDetails={openFullDetails}
             onOpenYear={(year) => {
               setFocusedYear(year);
@@ -354,7 +318,28 @@ export function AppWorkspace() {
             year={focusedYear}
             events={timelineYearEvents}
             memoryCount={timelineYearEvents.reduce((total, event) => total + (memoriesByEvent[event.id]?.length ?? 0), 0)}
-            onOpenEvent={(eventId) => openEvent(eventId, "plans")}
+            onOpenEvent={(eventId) => openEvent(eventId, "event-detail")}
+          />
+        )}
+
+        {activeView === "create-event" && (
+          <CreateEventPage
+            userId={userId}
+            onCreated={(eventId) => {
+              setSelectedEventId(eventId);
+              void refresh();
+              setActiveView("event-detail");
+            }}
+            onCancel={() => setActiveView("dashboard")}
+          />
+        )}
+
+        {activeView === "event-detail" && (
+          <EventDetailPage
+            userId={userId}
+            event={selectedEvent}
+            onBack={() => setActiveView("timeline")}
+            onEdit={() => setActiveView("create-event")}
           />
         )}
 
@@ -383,7 +368,7 @@ export function AppWorkspace() {
                         <small>{event.priority} priority</small>
                       </div>
                       <div className="plan-card-actions">
-                        <button type="button" className="ghost-link" onClick={() => openEvent(event.id, "plans")}>Open plan</button>
+                        <button type="button" className="ghost-link" onClick={() => openEvent(event.id, "event-detail")}>Open plan</button>
                         <button type="button" className="ghost-danger" onClick={() => void handleDelete(event.id)}>Remove plan</button>
                       </div>
                     </article>
@@ -391,16 +376,12 @@ export function AppWorkspace() {
                   {items.length === 0 && <p>No plans yet.</p>}
                 </div>
               </section>
-              <EventForm onSubmit={handleCreate} />
             </div>
-            <section>
-              {renderDetailPanel("Choose a plan", "Open any plan to view details, update milestones, save notes, and attach memories.")}
-            </section>
           </div>
         )}
 
-        {activeView === "savings" && <SavingsBoard events={items} financial={financial} onSelect={(eventId) => openEvent(eventId)} />}
-        {activeView === "memories" && <MemoriesBoard events={items} memoriesByEvent={memoriesByEvent} onSelect={(eventId) => openEvent(eventId)} />}
+        {activeView === "savings" && <SavingsBoard events={items} financial={financial} onSelect={(eventId) => openEvent(eventId, "event-detail")} />}
+        {activeView === "memories" && <MemoriesBoard events={items} memoriesByEvent={memoriesByEvent} onSelect={(eventId) => openEvent(eventId, "event-detail")} />}
 
         {activeView === "search" && (
           <div className="workspace-grid">
@@ -426,7 +407,7 @@ export function AppWorkspace() {
                       </div>
                       <h4>{event.title}</h4>
                       <p>{event.description || event.notes || "No searchable notes yet."}</p>
-                      <button type="button" className="ghost-link" onClick={() => openEvent(event.id, "search")}>Open result</button>
+                      <button type="button" className="ghost-link" onClick={() => openEvent(event.id, "event-detail")}>Open result</button>
                     </article>
                   ))}
                   {!deferredSearchQuery.trim() && <p>Start typing to search your plans.</p>}
@@ -434,9 +415,6 @@ export function AppWorkspace() {
                 </div>
               </section>
             </div>
-            <section>
-              {renderDetailPanel("Open a search result", "Select a result to inspect the full event details without leaving search.")}
-            </section>
           </div>
         )}
 
@@ -460,16 +438,13 @@ export function AppWorkspace() {
                       </div>
                       <h4>{event.title}</h4>
                       <p>{event.description || event.notes || "Completed milestone."}</p>
-                      <button type="button" className="ghost-link" onClick={() => openEvent(event.id, "archive")}>Open archive entry</button>
+                      <button type="button" className="ghost-link" onClick={() => openEvent(event.id, "event-detail")}>Open archive entry</button>
                     </article>
                   ))}
                   {completedEvents.length === 0 && <p>No archived milestones yet.</p>}
                 </div>
               </section>
             </div>
-            <section>
-              {renderDetailPanel("Open an archived chapter", "Choose a completed milestone to revisit its notes, memories, and records.")}
-            </section>
           </div>
         )}
 

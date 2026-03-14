@@ -3,6 +3,7 @@ import type { ActivityItem } from "../types/savings";
 export const mockActivity: ActivityItem[] = [
   {
     id: "activity-memory",
+    planId: "plan-land",
     title: "Attached memory to land visit",
     detail: "Added the first site-visit note under Buy Agricultural Land.",
     date: "2034-07-12",
@@ -10,6 +11,7 @@ export const mockActivity: ActivityItem[] = [
   },
   {
     id: "activity-savings",
+    planId: "plan-land",
     title: "Updated land savings",
     detail: "Recorded another contribution toward the purchase fund.",
     date: "2034-08-03",
@@ -17,6 +19,7 @@ export const mockActivity: ActivityItem[] = [
   },
   {
     id: "activity-plan",
+    planId: "plan-farm",
     title: "Created farm setup plan",
     detail: "Added a long-term ecosystem setup chapter to the life map.",
     date: "2035-01-15",
