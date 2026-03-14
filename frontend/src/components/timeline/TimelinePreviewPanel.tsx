@@ -7,7 +7,7 @@ type Props = {
   nextMilestoneTitle?: string;
   memoryCount: number;
   progress: number;
-  onOpenFullDetails: (tab?: "overview" | "tasks" | "savings" | "memories" | "notes") => void;
+  onOpenFullDetails: (tab?: "overview" | "milestones" | "savings" | "memories" | "updates") => void;
 };
 
 export function TimelinePreviewPanel({
@@ -55,7 +55,7 @@ export function TimelinePreviewPanel({
           <div className="preview-actions">
             <button type="button" onClick={() => onOpenFullDetails("overview")}>View Full Details</button>
             <button type="button" className="timeline-secondary-button" onClick={() => onOpenFullDetails("overview")}>Edit</button>
-            <button type="button" className="timeline-secondary-button" onClick={() => onOpenFullDetails("notes")}>Add Update</button>
+            <button type="button" className="timeline-secondary-button" onClick={() => onOpenFullDetails("updates")}>Add Update</button>
             <button type="button" className="timeline-secondary-button" onClick={() => onOpenFullDetails("memories")}>Add Memory</button>
           </div>
         </div>

@@ -14,7 +14,7 @@ export function HeroSection({ onStart, onDemo }: Props) {
         </p>
         <div className="landing-actions">
           <button type="button" onClick={onStart}>Start Your Journey</button>
-          <button type="button" className="timeline-secondary-button" onClick={onDemo}>View Timeline Demo</button>
+          <button type="button" className="timeline-secondary-button" onClick={onDemo}>Login to Continue</button>
         </div>
       </div>
       <div className="landing-hero-visual panel">

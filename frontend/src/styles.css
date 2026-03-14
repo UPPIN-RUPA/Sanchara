@@ -1974,6 +1974,132 @@ small {
   }
 }
 
+.create-plan-intro {
+  display: grid;
+  gap: 1rem;
+  padding: 1.4rem;
+  background:
+    linear-gradient(135deg, rgba(253, 246, 236, 0.96), rgba(240, 228, 214, 0.88)),
+    radial-gradient(circle at top right, rgba(138, 103, 73, 0.14), transparent 34%);
+}
+
+.create-plan-examples,
+.event-detail-badges,
+.event-hero-actions,
+.category-pill-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.category-pill {
+  border-radius: 999px;
+  padding: 0.62rem 0.95rem;
+  background: rgba(250, 243, 234, 0.94);
+  color: #5c473d;
+  border: 1px solid rgba(91, 70, 57, 0.12);
+  box-shadow: none;
+  text-transform: capitalize;
+}
+
+.category-pill.active {
+  background: #3c2d26;
+  color: #f7efe5;
+}
+
+.event-detail-badges {
+  margin-bottom: 0.1rem;
+}
+
+.event-hero-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.event-hero-stat {
+  border: 1px solid rgba(91, 70, 57, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 252, 247, 0.78);
+  padding: 0.85rem 0.95rem;
+  display: grid;
+  gap: 0.22rem;
+}
+
+.event-hero-stat span,
+.category-pill {
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  font-size: 0.84rem;
+}
+
+.event-hero-stat strong {
+  font-size: 1.05rem;
+}
+
+.event-hero-actions {
+  display: grid;
+}
+
+.event-hero-actions .timeline-secondary-button {
+  width: 100%;
+}
+
+.overview-story-card p,
+.overview-snapshot-card p,
+.notes-card p,
+.empty-memory-card p,
+.milestone-card small {
+  margin: 0;
+}
+
+.milestone-card-list {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.milestone-card {
+  border: 1px solid rgba(91, 70, 57, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 252, 247, 0.94);
+  padding: 1rem;
+}
+
+.milestone-card-main {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.detail-inline-form,
+.detail-inline-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.detail-inline-form {
+  margin-bottom: 0.95rem;
+  align-items: end;
+}
+
+.detail-inline-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-toggle-row {
+  grid-column: 1 / -1;
+}
+
+.milestone-completed {
+  background: rgba(239, 248, 239, 0.92);
+}
+
+.milestone-in-progress {
+  background: rgba(246, 240, 230, 0.98);
+}
+
 @media (max-width: 760px) {
   .app-shell {
     padding: 0.85rem;
@@ -2038,6 +2164,15 @@ small {
   .page-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .event-hero-stat-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-inline-form,
+  .detail-inline-grid {
+    grid-template-columns: 1fr;
   }
 
   .landing-mock-cards {

@@ -2,20 +2,34 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { EventForm } from "../components/events/EventForm";
 
 type Props = {
-  userId: string;
   onCreated: (eventId: string) => void;
   onCancel: () => void;
 };
 
-export function CreateEventPage({ userId, onCreated, onCancel }: Props) {
+export function CreateEventPage({ onCreated, onCancel }: Props) {
   return (
     <div className="view-stack">
       <PageHeader
         eyebrow="Create plan"
-        title="Add a meaningful milestone to your journey"
-        subtitle="Craft the plan as a real life chapter, not as a ticket or admin entry."
+        title="Create New Plan"
+        subtitle="Add a meaningful goal, chapter, or dream to your journey."
+        actions={<button type="button" className="timeline-secondary-button" onClick={onCancel}>Cancel</button>}
       />
-      <EventForm userId={userId} onCreated={onCreated} onCancel={onCancel} />
+      <section className="panel create-plan-intro">
+        <div>
+          <p className="section-kicker">Guidance</p>
+          <h3>Start a future chapter, not just a form entry.</h3>
+          <p className="section-copy">
+            Plans in Sanchara can be long-term goals like marriage, building a house, saving for land, starting a PhD, or creating a self-sustaining farm.
+          </p>
+        </div>
+        <div className="create-plan-examples">
+          <span className="hero-tag">Build a House</span>
+          <span className="hero-tag">Start a PhD</span>
+          <span className="hero-tag">Buy Land</span>
+        </div>
+      </section>
+      <EventForm mode="create" onSubmitted={onCreated} onCancel={onCancel} />
     </div>
   );
 }

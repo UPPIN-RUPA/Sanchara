@@ -1,36 +1,26 @@
-import type { EventItem, MemoryItem } from "../lib/api";
+import { useNavigate } from "react-router-dom";
 import { TimelineWorkspace } from "../components/TimelineWorkspace";
+import { useTimelineData } from "../hooks/useTimelineData";
 
-type DetailTab = "overview" | "tasks" | "savings" | "memories" | "notes";
+export function TimelinePage() {
+  const navigate = useNavigate();
+  const { events, memoriesByEvent, selectedEvent, setSelectedEventId, isLoading, error } = useTimelineData();
 
-type Props = {
-  events: EventItem[];
-  memoriesByEvent: Record<string, MemoryItem[]>;
-  selectedEvent: EventItem | null;
-  onSelect: (eventId: string) => void;
-  onAddPlan: () => void;
-  onOpenFullDetails: (tab?: DetailTab) => void;
-  onOpenYear?: (year: number) => void;
-};
-
-export function TimelinePage({
-  events,
-  memoriesByEvent,
-  selectedEvent,
-  onSelect,
-  onAddPlan,
-  onOpenFullDetails,
-  onOpenYear,
-}: Props) {
   return (
-    <TimelineWorkspace
-      events={events}
-      memoriesByEvent={memoriesByEvent}
-      selectedEvent={selectedEvent}
-      onSelect={onSelect}
-      onAddPlan={onAddPlan}
-      onOpenFullDetails={onOpenFullDetails}
-      onOpenYear={onOpenYear}
-    />
+    <div className="view-stack">
+      {error && <p className="error panel">{error}</p>}
+      {isLoading && <p className="loading panel">Loading timeline...</p>}
+      <TimelineWorkspace
+        events={events}
+        memoriesByEvent={memoriesByEvent}
+        selectedEvent={selectedEvent}
+        onSelect={setSelectedEventId}
+        onAddPlan={() => navigate("/plans/new")}
+        onOpenFullDetails={() => {
+          if (selectedEvent) navigate(`/plans/${selectedEvent.id}`);
+        }}
+        onOpenYear={(year) => navigate(`/timeline/${year}`)}
+      />
+    </div>
   );
 }

@@ -20,7 +20,6 @@ type EventTab = "overview" | "tasks" | "savings" | "memories" | "notes";
 
 type Props = {
   event: EventItem;
-  userId: string;
   onClose: () => void;
   onEventUpdated: (event: EventItem) => void;
   initialTab?: EventTab;
@@ -35,7 +34,7 @@ function formatDateRange(startDate: string, endDate?: string | null): string {
   return endDate ? `${startDate} to ${endDate}` : startDate;
 }
 
-export function EventDetailsPanel({ event, userId, onClose, onEventUpdated, initialTab = "overview" }: Props) {
+export function EventDetailsPanel({ event, onClose, onEventUpdated, initialTab = "overview" }: Props) {
   const [activeTab, setActiveTab] = useState<EventTab>(initialTab);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [memories, setMemories] = useState<MemoryItem[]>([]);
@@ -90,8 +89,8 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated, init
         setIsLoadingChildren(true);
         setWorkspaceError("");
         const [taskResponse, memoryResponse] = await Promise.all([
-          getTasks(userId, event.id),
-          getMemories(userId, event.id),
+          getTasks(event.id),
+          getMemories(event.id),
         ]);
         if (!cancelled) {
           setTasks(taskResponse.items);
@@ -109,7 +108,7 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated, init
     return () => {
       cancelled = true;
     };
-  }, [event.id, userId]);
+  }, [event.id]);
 
   const savingsRemaining = useMemo(() => {
     const target = Number(overviewForm.savings_target || 0);
@@ -121,7 +120,7 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated, init
     try {
       setIsSavingEvent(true);
       setWorkspaceError("");
-      const updated = await updateEvent(userId, event.id, payload);
+      const updated = await updateEvent(event.id, payload);
       onEventUpdated(updated);
     } catch (err) {
       setWorkspaceError(err instanceof Error ? err.message : "Failed to update event");
@@ -167,7 +166,7 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated, init
     };
     try {
       setWorkspaceError("");
-      const created = await createTask(userId, event.id, payload);
+      const created = await createTask(event.id, payload);
       setTasks((current) => [created, ...current]);
       setTaskForm({ title: "", notes: "", due_date: "", priority: "medium" });
     } catch (err) {
@@ -177,7 +176,7 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated, init
 
   async function toggleTask(task: TaskItem) {
     try {
-      const updated = await updateTask(userId, event.id, task.id, {
+      const updated = await updateTask(event.id, task.id, {
         status: task.status === "completed" ? "pending" : "completed",
       });
       setTasks((current) => current.map((item) => (item.id === task.id ? updated : item)));
@@ -188,7 +187,7 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated, init
 
   async function removeTask(taskId: string) {
     try {
-      await deleteTask(userId, event.id, taskId);
+      await deleteTask(event.id, taskId);
       setTasks((current) => current.filter((task) => task.id !== taskId));
     } catch (err) {
       setWorkspaceError(err instanceof Error ? err.message : "Failed to delete task");
@@ -209,7 +208,7 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated, init
       memory_type: memoryForm.memory_type,
     };
     try {
-      const created = await createMemory(userId, event.id, payload);
+      const created = await createMemory(event.id, payload);
       setMemories((current) => [created, ...current]);
       setMemoryForm({ title: "", description: "", captured_on: "", asset_url: "", memory_type: "reflection" });
     } catch (err) {
@@ -219,7 +218,7 @@ export function EventDetailsPanel({ event, userId, onClose, onEventUpdated, init
 
   async function removeMemory(memoryId: string) {
     try {
-      await deleteMemory(userId, event.id, memoryId);
+      await deleteMemory(event.id, memoryId);
       setMemories((current) => current.filter((memory) => memory.id !== memoryId));
     } catch (err) {
       setWorkspaceError(err instanceof Error ? err.message : "Failed to delete memory");

@@ -1,3 +1,10 @@
+import type {
+  EventUpdate,
+  EventUpdateListResponse,
+  EventUpdateType,
+} from "../types/eventUpdate";
+import type { AuthResponse, AuthUser, LoginPayload, SignupPayload } from "../types/auth";
+
 export type EventItem = {
   id: string;
   user_id: string;
@@ -105,6 +112,20 @@ export type UpdateMemoryPayload = {
   captured_on?: string | null;
 };
 
+export type CreateEventUpdatePayload = {
+  title: string;
+  body: string;
+  update_type?: EventUpdateType;
+  effective_date?: string | null;
+};
+
+export type UpdateEventUpdatePayload = {
+  title?: string;
+  body?: string;
+  update_type?: EventUpdateType;
+  effective_date?: string | null;
+};
+
 export type EventListResponse = {
   items: EventItem[];
   page: number;
@@ -134,6 +155,7 @@ export type CreateEventPayload = {
   priority: "low" | "medium" | "high" | "critical";
   timeline_phase?: string;
   is_financial: boolean;
+  estimated_cost?: number;
   savings_target?: number;
   amount_saved?: number;
 };
@@ -148,13 +170,18 @@ export class ApiError extends Error {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+let accessToken: string | null = null;
 
-async function request<T>(path: string, userId: string, init?: RequestInit): Promise<T> {
+export function setApiAccessToken(token: string | null) {
+  accessToken = token;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      "X-User-Id": userId,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(init?.headers ?? {}),
     },
   });
@@ -176,8 +203,25 @@ async function request<T>(path: string, userId: string, init?: RequestInit): Pro
   return (await response.json()) as T;
 }
 
+export function signupUser(payload: SignupPayload): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/signup", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function loginUser(payload: LoginPayload): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getCurrentUser(): Promise<AuthUser> {
+  return request<AuthUser>("/auth/me");
+}
+
 export function getEvents(
-  userId: string,
   params: { status?: string; category?: string; year?: string; page?: number; pageSize?: number } = {}
 ): Promise<EventListResponse> {
   const search = new URLSearchParams();
@@ -189,61 +233,84 @@ export function getEvents(
   search.set("sort_by", "start_date");
   search.set("sort_order", "asc");
   const query = search.toString();
-  return request<EventListResponse>(`/events${query ? `?${query}` : ""}`, userId);
+  return request<EventListResponse>(`/events${query ? `?${query}` : ""}`);
 }
 
-export function getEvent(userId: string, eventId: string): Promise<EventItem> {
-  return request<EventItem>(`/events/${eventId}`, userId);
+export function getEvent(eventId: string): Promise<EventItem> {
+  return request<EventItem>(`/events/${eventId}`);
 }
 
-export function createEvent(userId: string, payload: CreateEventPayload): Promise<EventItem> {
-  return request<EventItem>("/events", userId, { method: "POST", body: JSON.stringify(payload) });
+export function createEvent(payload: CreateEventPayload): Promise<EventItem> {
+  return request<EventItem>("/events", { method: "POST", body: JSON.stringify(payload) });
 }
 
-export function updateEvent(userId: string, eventId: string, payload: UpdateEventPayload): Promise<EventItem> {
-  return request<EventItem>(`/events/${eventId}`, userId, { method: "PATCH", body: JSON.stringify(payload) });
+export function updateEvent(eventId: string, payload: UpdateEventPayload): Promise<EventItem> {
+  return request<EventItem>(`/events/${eventId}`, { method: "PATCH", body: JSON.stringify(payload) });
 }
 
-export function deleteEvent(userId: string, eventId: string): Promise<void> {
-  return request<void>(`/events/${eventId}`, userId, { method: "DELETE" });
+export function deleteEvent(eventId: string): Promise<void> {
+  return request<void>(`/events/${eventId}`, { method: "DELETE" });
 }
 
-export function getTasks(userId: string, eventId: string): Promise<TaskListResponse> {
-  return request<TaskListResponse>(`/events/${eventId}/tasks`, userId);
+export function getTasks(eventId: string): Promise<TaskListResponse> {
+  return request<TaskListResponse>(`/events/${eventId}/tasks`);
 }
 
-export function createTask(userId: string, eventId: string, payload: CreateTaskPayload): Promise<TaskItem> {
-  return request<TaskItem>(`/events/${eventId}/tasks`, userId, { method: "POST", body: JSON.stringify(payload) });
+export function createTask(eventId: string, payload: CreateTaskPayload): Promise<TaskItem> {
+  return request<TaskItem>(`/events/${eventId}/tasks`, { method: "POST", body: JSON.stringify(payload) });
 }
 
-export function updateTask(userId: string, eventId: string, taskId: string, payload: UpdateTaskPayload): Promise<TaskItem> {
-  return request<TaskItem>(`/events/${eventId}/tasks/${taskId}`, userId, { method: "PATCH", body: JSON.stringify(payload) });
+export function updateTask(eventId: string, taskId: string, payload: UpdateTaskPayload): Promise<TaskItem> {
+  return request<TaskItem>(`/events/${eventId}/tasks/${taskId}`, { method: "PATCH", body: JSON.stringify(payload) });
 }
 
-export function deleteTask(userId: string, eventId: string, taskId: string): Promise<void> {
-  return request<void>(`/events/${eventId}/tasks/${taskId}`, userId, { method: "DELETE" });
+export function deleteTask(eventId: string, taskId: string): Promise<void> {
+  return request<void>(`/events/${eventId}/tasks/${taskId}`, { method: "DELETE" });
 }
 
-export function getMemories(userId: string, eventId: string): Promise<MemoryListResponse> {
-  return request<MemoryListResponse>(`/events/${eventId}/memories`, userId);
+export function getMemories(eventId: string): Promise<MemoryListResponse> {
+  return request<MemoryListResponse>(`/events/${eventId}/memories`);
 }
 
-export function createMemory(userId: string, eventId: string, payload: CreateMemoryPayload): Promise<MemoryItem> {
-  return request<MemoryItem>(`/events/${eventId}/memories`, userId, { method: "POST", body: JSON.stringify(payload) });
+export function createMemory(eventId: string, payload: CreateMemoryPayload): Promise<MemoryItem> {
+  return request<MemoryItem>(`/events/${eventId}/memories`, { method: "POST", body: JSON.stringify(payload) });
 }
 
-export function updateMemory(userId: string, eventId: string, memoryId: string, payload: UpdateMemoryPayload): Promise<MemoryItem> {
-  return request<MemoryItem>(`/events/${eventId}/memories/${memoryId}`, userId, { method: "PATCH", body: JSON.stringify(payload) });
+export function updateMemory(eventId: string, memoryId: string, payload: UpdateMemoryPayload): Promise<MemoryItem> {
+  return request<MemoryItem>(`/events/${eventId}/memories/${memoryId}`, { method: "PATCH", body: JSON.stringify(payload) });
 }
 
-export function deleteMemory(userId: string, eventId: string, memoryId: string): Promise<void> {
-  return request<void>(`/events/${eventId}/memories/${memoryId}`, userId, { method: "DELETE" });
+export function deleteMemory(eventId: string, memoryId: string): Promise<void> {
+  return request<void>(`/events/${eventId}/memories/${memoryId}`, { method: "DELETE" });
 }
 
-export function getOverviewSummary(userId: string): Promise<OverviewSummary> {
-  return request<OverviewSummary>("/summary/overview", userId);
+export function getOverviewSummary(): Promise<OverviewSummary> {
+  return request<OverviewSummary>("/summary/overview");
 }
 
-export function getFinancialSummary(userId: string): Promise<FinancialSummary> {
-  return request<FinancialSummary>("/summary/financial?next_years=5", userId);
+export function getFinancialSummary(): Promise<FinancialSummary> {
+  return request<FinancialSummary>("/summary/financial?next_years=5");
+}
+
+export function getEventUpdates(eventId: string): Promise<EventUpdateListResponse> {
+  return request<EventUpdateListResponse>(`/events/${eventId}/updates`);
+}
+
+export function createEventUpdate(
+  eventId: string,
+  payload: CreateEventUpdatePayload
+): Promise<EventUpdate> {
+  return request<EventUpdate>(`/events/${eventId}/updates`, { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function updateEventUpdate(
+  eventId: string,
+  updateId: string,
+  payload: UpdateEventUpdatePayload
+): Promise<EventUpdate> {
+  return request<EventUpdate>(`/events/${eventId}/updates/${updateId}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function deleteEventUpdate(eventId: string, updateId: string): Promise<void> {
+  return request<void>(`/events/${eventId}/updates/${updateId}`, { method: "DELETE" });
 }

@@ -1,12 +1,16 @@
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthLayout } from "../components/auth/AuthLayout";
 import { SignupForm } from "../components/auth/SignupForm";
+import { useAuth } from "../auth/useAuth";
 
-type Props = {
-  onSignup: () => void;
-  onLogin: () => void;
-};
+export function SignupPage() {
+  const navigate = useNavigate();
+  const { isAuthenticated, signup } = useAuth();
 
-export function SignupPage({ onSignup, onLogin }: Props) {
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <AuthLayout
       eyebrow="Begin your journey"
@@ -14,7 +18,18 @@ export function SignupPage({ onSignup, onLogin }: Props) {
       subtitle="Start mapping long-term milestones, savings goals, and memories with a calmer life-planning space."
       quote="The years ahead deserve a place to be imagined well."
     >
-      <SignupForm onSubmit={onSignup} onLogin={onLogin} />
+      <SignupForm
+        onSubmit={async (payload) => {
+          try {
+            await signup(payload);
+            navigate("/dashboard");
+            return null;
+          } catch (error) {
+            return error instanceof Error ? error.message : "Failed to create account.";
+          }
+        }}
+        onLogin={() => navigate("/login")}
+      />
     </AuthLayout>
   );
 }

@@ -1,6 +1,6 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { MemoriesBoard } from "../components/MemoriesBoard";
-import { SavingsBoard } from "../components/SavingsBoard";
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/useAuth";
 import { AppShell } from "../components/layout/AppShell";
 import { ContentContainer } from "../components/layout/ContentContainer";
 import { HeaderBar } from "../components/layout/HeaderBar";
@@ -8,190 +8,54 @@ import {
   ApiError,
   createEvent,
   deleteEvent,
-  getEvent,
-  getEvents,
-  getFinancialSummary,
-  getMemories,
-  getOverviewSummary,
   type CreateEventPayload,
   type EventItem,
-  type EventListResponse,
-  type FinancialSummary,
-  type MemoryItem,
-  type OverviewSummary,
 } from "../lib/api";
+import { ArchivePage } from "./ArchivePage";
 import { DashboardPage } from "./DashboardPage";
 import { CreateEventPage } from "./CreateEventPage";
+import { EditEventPage } from "./EditEventPage";
 import { EventDetailPage } from "./EventDetailPage";
+import { MemoriesPage } from "./MemoriesPage";
+import { PlansPage } from "./PlansPage";
+import { SavingsPage } from "./SavingsPage";
+import { SearchPage } from "./SearchPage";
 import { TimelinePage } from "./TimelinePage";
 import { YearViewPage } from "./YearViewPage";
 import type { View } from "../types/navigation";
-import { mockActivity } from "../data/mockActivity";
 
-type DetailTab = "overview" | "tasks" | "savings" | "memories" | "notes";
+type DetailTab = "overview" | "milestones" | "savings" | "memories" | "updates";
 
-const QUICK_USERS = ["demo-user", "rupa", "alex"];
-
-function isUpcoming(event: EventItem): boolean {
-  return new Date(event.start_date) >= new Date(new Date().toISOString().slice(0, 10));
-}
-
-function matchesSearch(event: EventItem, query: string): boolean {
-  const yearLabel = new Date(event.start_date).getFullYear().toString();
-  const haystack = [
-    event.title,
-    event.category,
-    event.description ?? "",
-    event.notes ?? "",
-    event.timeline_phase ?? "",
-    yearLabel,
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  return haystack.includes(query.toLowerCase());
-}
-
-function percentage(completed: number, total: number): number {
-  if (total === 0) return 0;
-  return Math.round((completed / total) * 100);
+function routeInfoFromPath(pathname: string): { view: View; eventId?: string; year?: number } {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments[0] === "timeline" && segments[1]) {
+    return { view: "year", year: Number(segments[1]) };
+  }
+  if (segments[0] === "timeline") return { view: "timeline" };
+  if (segments[0] === "plans" && segments[1] === "new") return { view: "create-event" };
+  if (segments[0] === "plans" && segments[1] && segments[2] === "edit") {
+    return { view: "edit-event", eventId: segments[1] };
+  }
+  if (segments[0] === "plans" && segments[1]) return { view: "event-detail", eventId: segments[1] };
+  if (segments[0] === "plans") return { view: "plans" };
+  if (segments[0] === "savings") return { view: "savings" };
+  if (segments[0] === "memories") return { view: "memories" };
+  if (segments[0] === "search") return { view: "search" };
+  if (segments[0] === "archive") return { view: "archive" };
+  if (segments[0] === "settings") return { view: "settings" };
+  return { view: "dashboard" };
 }
 
 export function AppWorkspace() {
-  const [activeView, setActiveView] = useState<View>("dashboard");
-  const [userId, setUserId] = useState("demo-user");
-  const [status, setStatus] = useState("");
-  const [category, setCategory] = useState("");
-  const [year, setYear] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [events, setEvents] = useState<EventListResponse | null>(null);
-  const [overview, setOverview] = useState<OverviewSummary | null>(null);
-  const [financial, setFinancial] = useState<FinancialSummary | null>(null);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
-  const [memoriesByEvent, setMemoriesByEvent] = useState<Record<string, MemoryItem[]>>({});
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
-
-  const deferredSearchQuery = useDeferredValue(searchQuery);
-  const items = events?.items ?? [];
-  const upcomingEvents = useMemo(() => items.filter(isUpcoming).slice(0, 4), [items]);
-  const recentEvents = useMemo(() => [...items].sort((a, b) => (b.updated_at ?? b.start_date).localeCompare(a.updated_at ?? a.start_date)).slice(0, 4), [items]);
-  const completedEvents = useMemo(() => items.filter((event) => event.status === "completed"), [items]);
-  const activePlans = useMemo(() => items.filter((event) => event.status !== "completed"), [items]);
-  const searchResults = useMemo(
-    () => (deferredSearchQuery.trim() ? items.filter((event) => matchesSearch(event, deferredSearchQuery)) : []),
-    [deferredSearchQuery, items]
-  );
-
-  const totalEvents = overview?.total_events ?? items.length;
-  const completedCount = overview?.by_status?.completed ?? completedEvents.length;
-  const lifeProgress = percentage(completedCount, totalEvents);
-  const focusText = selectedEvent?.title ?? upcomingEvents[0]?.title ?? "Your next chapter";
-  const [focusedYear, setFocusedYear] = useState(new Date().getFullYear());
-  const currentYearEvents = useMemo(
-    () => items.filter((event) => new Date(event.start_date).getFullYear() === focusedYear),
-    [focusedYear, items]
-  );
-  const timelineYearEvents = useMemo(
-    () => items.filter((event) => new Date(event.start_date).getFullYear() === focusedYear),
-    [focusedYear, items]
-  );
-  const activity = useMemo(
-    () =>
-      recentEvents.slice(0, 3).map((event, index) => ({
-        id: `event-${event.id}`,
-        title: index === 0 ? `Updated ${event.title}` : `Revisited ${event.title}`,
-        detail: event.description || event.timeline_phase || "Plan details were updated in the workspace.",
-        date: event.updated_at ?? event.start_date,
-        kind: "plan" as const,
-      })),
-    [recentEvents]
-  );
-  const mergedActivity = activity.length > 0 ? activity : mockActivity;
-
-  async function refresh() {
-    try {
-      setIsLoading(true);
-      setError("");
-      const [eventData, overviewData, financialData] = await Promise.all([
-        getEvents(userId, {
-          status: status || undefined,
-          category: category || undefined,
-          year: year || undefined,
-          pageSize: 100,
-        }),
-        getOverviewSummary(userId),
-        getFinancialSummary(userId),
-      ]);
-      setEvents(eventData);
-      setOverview(overviewData);
-      setFinancial(financialData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void refresh();
-  }, [userId, status, category, year]);
-
-  useEffect(() => {
-    if (!selectedEventId) {
-      setSelectedEvent(null);
-      return;
-    }
-    const selectedId = selectedEventId;
-    let cancelled = false;
-    async function loadEvent() {
-      try {
-        setIsDetailLoading(true);
-        const event = await getEvent(userId, selectedId);
-        if (!cancelled) setSelectedEvent(event);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load event details");
-      } finally {
-        if (!cancelled) setIsDetailLoading(false);
-      }
-    }
-    void loadEvent();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedEventId, userId]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function hydrateMemories() {
-      if (items.length === 0) {
-        setMemoriesByEvent({});
-        return;
-      }
-      const results = await Promise.all(
-        items.slice(0, 12).map(async (event) => {
-          try {
-            const response = await getMemories(userId, event.id);
-            return [event.id, response.items] as const;
-          } catch {
-            return [event.id, []] as const;
-          }
-        })
-      );
-      if (!cancelled) setMemoriesByEvent(Object.fromEntries(results));
-    }
-    void hydrateMemories();
-    return () => {
-      cancelled = true;
-    };
-  }, [items, userId]);
+  const { currentUser, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const routeInfo = routeInfoFromPath(location.pathname);
+  const activeView = routeInfo.view;
 
   async function handleCreate(payload: CreateEventPayload): Promise<string | null> {
     try {
-      await createEvent(userId, payload);
-      await refresh();
+      await createEvent(payload);
       return null;
     } catch (err) {
       if (err instanceof ApiError) return err.message;
@@ -201,42 +65,46 @@ export function AppWorkspace() {
 
   async function handleDelete(eventId: string) {
     try {
-      if (selectedEventId === eventId) {
-        setSelectedEventId(null);
-        setSelectedEvent(null);
-      }
-      await deleteEvent(userId, eventId);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete event");
+      await deleteEvent(eventId);
+    } catch {
+      return;
     }
   }
 
-  function handleEventUpdated(updatedEvent: EventItem) {
-    setSelectedEvent(updatedEvent);
-    setEvents((current) =>
-      current
-        ? { ...current, items: current.items.map((item) => (item.id === updatedEvent.id ? updatedEvent : item)) }
-        : current
-    );
-    void refresh();
+  function handleEventUpdated(_updatedEvent: EventItem) {
+    return;
   }
 
   function openEvent(eventId: string, targetView: View = "event-detail") {
-    setSelectedEventId(eventId);
-    setActiveView(targetView);
+    if (targetView === "timeline") {
+      navigate("/timeline");
+      return;
+    }
+    if (targetView === "edit-event") {
+      navigate(`/plans/${eventId}/edit`);
+      return;
+    }
+    navigate(`/plans/${eventId}`);
   }
 
-  function openFullDetails(tab: DetailTab = "overview") {
-    setActiveView("event-detail");
+  function navigateToView(view: View) {
+    if (view === "dashboard") navigate("/dashboard");
+    else if (view === "timeline") navigate("/timeline");
+    else if (view === "plans") navigate("/plans");
+    else if (view === "savings") navigate("/savings");
+    else if (view === "memories") navigate("/memories");
+    else if (view === "search") navigate("/search");
+    else if (view === "archive") navigate("/archive");
+    else if (view === "settings") navigate("/settings");
   }
 
   const viewMeta: Record<View, { title: string; subtitle: string }> = {
     dashboard: { title: "Dashboard", subtitle: "A calm command center for the journey you are intentionally building." },
     timeline: { title: "Timeline", subtitle: "See your life plans across years, milestones, and chapters." },
-    year: { title: `${focusedYear}`, subtitle: "Understand what this year means in the larger life plan." },
+    year: { title: `${routeInfo.year ?? new Date().getFullYear()}`, subtitle: "Understand what this year means in the larger life plan." },
     "create-event": { title: "Create Plan", subtitle: "Add a meaningful milestone, dream, or life chapter to the map." },
-    "event-detail": { title: selectedEvent?.title ?? "Plan Detail", subtitle: "Read the full story of a plan and manage it deeply." },
+    "edit-event": { title: "Edit Plan", subtitle: "Refine the timing, meaning, and structure of one chapter." },
+    "event-detail": { title: "Plan Detail", subtitle: "Read the full story of a plan and manage it deeply." },
     plans: { title: "Plans", subtitle: "Create, organize, and revisit the milestones shaping your future." },
     savings: { title: "Savings", subtitle: "Track the money behind the dreams you are preparing to live." },
     memories: { title: "Memories", subtitle: "Keep the emotional record of moments that shaped the journey." },
@@ -246,7 +114,7 @@ export function AppWorkspace() {
   };
 
   return (
-    <AppShell activeView={activeView} onViewChange={setActiveView}>
+    <AppShell activeView={activeView} onViewChange={navigateToView}>
       <HeaderBar
         title={viewMeta[activeView].title}
         subtitle={viewMeta[activeView].subtitle}
@@ -254,199 +122,58 @@ export function AppWorkspace() {
           activeView !== "settings" ? (
             <div className="header-bar-user">
               <span className="header-user-label">Profile</span>
-              <strong>{userId}</strong>
+              <strong>{currentUser?.name ?? currentUser?.email}</strong>
+              <button type="button" className="ghost-link" onClick={() => { logout(); navigate("/login"); }}>
+                Logout
+              </button>
             </div>
           ) : undefined
         }
       />
       <ContentContainer>
-        {!["settings", "create-event", "event-detail"].includes(activeView) && (
-          <div className="filters-bar panel quiet-panel">
-            <label><span>Status</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">all</option><option value="planned">planned</option><option value="in-progress">in-progress</option><option value="completed">completed</option></select></label>
-            <label><span>Category</span><input value={category} placeholder="career, finance..." onChange={(e) => setCategory(e.target.value)} /></label>
-            <label><span>Year</span><input value={year} placeholder="2035" onChange={(e) => setYear(e.target.value)} /></label>
-          </div>
-        )}
-
-        {error && <p className="error panel">{error}</p>}
-        {isLoading && <p className="loading panel">Loading Sanchara workspace...</p>}
-
         {activeView === "dashboard" && (
           <DashboardPage
-            totalEvents={totalEvents}
-            activePlans={activePlans.length}
-            upcomingMilestones={upcomingEvents.length}
-            completedMilestones={completedCount}
-            lifeProgress={lifeProgress}
-            focusText={focusText}
-            userId={userId}
-            quickUsers={QUICK_USERS}
-            onUserChange={setUserId}
-            upcomingEvents={upcomingEvents}
             onOpenEvent={(eventId) => openEvent(eventId, "event-detail")}
-            onGoToPlans={() => setActiveView("create-event")}
-            onGoToTimeline={() => setActiveView("timeline")}
-            onGoToMemories={() => setActiveView("memories")}
-            onGoToYear={() => {
-              setFocusedYear(new Date().getFullYear());
-              setActiveView("year");
-            }}
-            currentYear={focusedYear}
-            currentYearEvents={currentYearEvents}
-            activity={mergedActivity}
+            onGoToPlans={() => navigate("/plans/new")}
+            onGoToTimeline={() => navigate("/timeline")}
+            onGoToMemories={() => navigate("/memories")}
+            onGoToYear={() => navigate(`/timeline/${new Date().getFullYear()}`)}
             onSubmitEvent={handleCreate}
           />
         )}
 
-        {activeView === "timeline" && (
-          <TimelinePage
-            events={items}
-            memoriesByEvent={memoriesByEvent}
-            selectedEvent={selectedEvent}
-            onSelect={(eventId) => openEvent(eventId, "timeline")}
-            onAddPlan={() => setActiveView("create-event")}
-            onOpenFullDetails={openFullDetails}
-            onOpenYear={(year) => {
-              setFocusedYear(year);
-              setActiveView("year");
-            }}
-          />
-        )}
+        {activeView === "timeline" && <TimelinePage />}
 
-        {activeView === "year" && (
-          <YearViewPage
-            year={focusedYear}
-            events={timelineYearEvents}
-            memoryCount={timelineYearEvents.reduce((total, event) => total + (memoriesByEvent[event.id]?.length ?? 0), 0)}
-            onOpenEvent={(eventId) => openEvent(eventId, "event-detail")}
-          />
-        )}
+        {activeView === "year" && <YearViewPage />}
 
         {activeView === "create-event" && (
           <CreateEventPage
-            userId={userId}
-            onCreated={(eventId) => {
-              setSelectedEventId(eventId);
-              void refresh();
-              setActiveView("event-detail");
-            }}
-            onCancel={() => setActiveView("dashboard")}
+            onCreated={(eventId) => navigate(`/plans/${eventId}`)}
+            onCancel={() => navigate("/dashboard")}
+          />
+        )}
+
+        {activeView === "edit-event" && (
+          <EditEventPage
+            onSaved={(eventId) => navigate(`/plans/${eventId}`)}
+            onCancel={() => navigate(routeInfo.eventId ? `/plans/${routeInfo.eventId}` : "/dashboard")}
           />
         )}
 
         {activeView === "event-detail" && (
           <EventDetailPage
-            userId={userId}
-            event={selectedEvent}
-            onBack={() => setActiveView("timeline")}
-            onEdit={() => setActiveView("create-event")}
+            onEventUpdated={handleEventUpdated}
           />
         )}
 
-        {activeView === "plans" && (
-          <div className="workspace-grid">
-            <div className="view-stack">
-              <section className="panel section-panel">
-                <div className="section-heading">
-                  <div>
-                    <p className="section-kicker">Plans</p>
-                    <h3>All life plans and milestones</h3>
-                  </div>
-                  <p className="section-copy">A cleaner planning surface for everything you are intentionally shaping across years and life phases.</p>
-                </div>
-                <div className="plan-grid">
-                  {items.map((event) => (
-                    <article key={event.id} className="plan-card">
-                      <div className="timeline-meta-row">
-                        <span className="pill subtle">{event.category}</span>
-                        <span className="muted-text">{event.status}</span>
-                      </div>
-                      <h4>{event.title}</h4>
-                      <p>{event.description || event.timeline_phase || "No description yet."}</p>
-                      <div className="manuscript-notes">
-                        <small>{event.start_date}</small>
-                        <small>{event.priority} priority</small>
-                      </div>
-                      <div className="plan-card-actions">
-                        <button type="button" className="ghost-link" onClick={() => openEvent(event.id, "event-detail")}>Open plan</button>
-                        <button type="button" className="ghost-danger" onClick={() => void handleDelete(event.id)}>Remove plan</button>
-                      </div>
-                    </article>
-                  ))}
-                  {items.length === 0 && <p>No plans yet.</p>}
-                </div>
-              </section>
-            </div>
-          </div>
-        )}
+        {activeView === "plans" && <PlansPage onDelete={handleDelete} />}
 
-        {activeView === "savings" && <SavingsBoard events={items} financial={financial} onSelect={(eventId) => openEvent(eventId, "event-detail")} />}
-        {activeView === "memories" && <MemoriesBoard events={items} memoriesByEvent={memoriesByEvent} onSelect={(eventId) => openEvent(eventId, "event-detail")} />}
+        {activeView === "savings" && <SavingsPage />}
+        {activeView === "memories" && <MemoriesPage />}
 
-        {activeView === "search" && (
-          <div className="workspace-grid">
-            <div className="view-stack">
-              <section className="panel section-panel">
-                <div className="section-heading">
-                  <div>
-                    <p className="section-kicker">Search</p>
-                    <h3>Find plans, notes, years, and themes</h3>
-                  </div>
-                  <p className="section-copy">Search across event names, notes, categories, and years to jump directly to the right chapter.</p>
-                </div>
-                <label className="search-field">
-                  <span>Search your life map</span>
-                  <input value={searchQuery} placeholder="land, 2035, career..." onChange={(e) => setSearchQuery(e.target.value)} />
-                </label>
-                <div className="plan-grid">
-                  {searchResults.map((event) => (
-                    <article key={event.id} className="plan-card">
-                      <div className="timeline-meta-row">
-                        <span className="pill subtle">{event.category}</span>
-                        <span className="muted-text">{new Date(event.start_date).getFullYear()}</span>
-                      </div>
-                      <h4>{event.title}</h4>
-                      <p>{event.description || event.notes || "No searchable notes yet."}</p>
-                      <button type="button" className="ghost-link" onClick={() => openEvent(event.id, "event-detail")}>Open result</button>
-                    </article>
-                  ))}
-                  {!deferredSearchQuery.trim() && <p>Start typing to search your plans.</p>}
-                  {deferredSearchQuery.trim() && searchResults.length === 0 && <p>No matching plans found.</p>}
-                </div>
-              </section>
-            </div>
-          </div>
-        )}
+        {activeView === "search" && <SearchPage />}
 
-        {activeView === "archive" && (
-          <div className="workspace-grid">
-            <div className="view-stack">
-              <section className="panel section-panel">
-                <div className="section-heading">
-                  <div>
-                    <p className="section-kicker">Archive</p>
-                    <h3>Completed chapters</h3>
-                  </div>
-                  <p className="section-copy">A place for milestones that are finished, so the timeline stays clear while the memory of what was built remains accessible.</p>
-                </div>
-                <div className="plan-grid">
-                  {completedEvents.map((event) => (
-                    <article key={event.id} className="plan-card archive-plan">
-                      <div className="timeline-meta-row">
-                        <span className="pill subtle">{event.category}</span>
-                        <span className="muted-text">completed</span>
-                      </div>
-                      <h4>{event.title}</h4>
-                      <p>{event.description || event.notes || "Completed milestone."}</p>
-                      <button type="button" className="ghost-link" onClick={() => openEvent(event.id, "event-detail")}>Open archive entry</button>
-                    </article>
-                  ))}
-                  {completedEvents.length === 0 && <p>No archived milestones yet.</p>}
-                </div>
-              </section>
-            </div>
-          </div>
-        )}
+        {activeView === "archive" && <ArchivePage />}
 
         {activeView === "settings" && (
           <section className="panel section-panel">
@@ -460,8 +187,9 @@ export function AppWorkspace() {
             <div className="settings-grid">
               <article className="detail-card">
                 <h4>Profile</h4>
-                <p>Current profile key</p>
-                <strong>{userId}</strong>
+                <p>Authenticated account</p>
+                <strong>{currentUser?.name}</strong>
+                <span>{currentUser?.email}</span>
               </article>
               <article className="detail-card">
                 <h4>Preferences</h4>

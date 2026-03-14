@@ -4,9 +4,10 @@ import { QuickActions } from "../components/dashboard/QuickActions";
 import { RecentUpdates } from "../components/dashboard/RecentUpdates";
 import { TimelinePreview } from "../components/dashboard/TimelinePreview";
 import { UpcomingMilestones } from "../components/dashboard/UpcomingMilestones";
+import { useAuth } from "../auth/useAuth";
 import { EventForm } from "../components/EventForm";
 import type { CreateEventPayload } from "../lib/api";
-import type { ActivityItem } from "../types/savings";
+import { useDashboardData } from "../hooks/useDashboardData";
 
 type DashboardEvent = {
   id: string;
@@ -17,50 +18,42 @@ type DashboardEvent = {
 };
 
 type Props = {
-  totalEvents: number;
-  activePlans: number;
-  upcomingMilestones: number;
-  completedMilestones: number;
-  lifeProgress: number;
-  focusText: string;
-  userId: string;
-  quickUsers: string[];
-  onUserChange: (value: string) => void;
-  upcomingEvents: DashboardEvent[];
   onOpenEvent: (eventId: string) => void;
   onGoToPlans: () => void;
   onGoToTimeline: () => void;
   onGoToMemories: () => void;
   onGoToYear: () => void;
-  currentYear: number;
-  currentYearEvents: DashboardEvent[];
-  activity: ActivityItem[];
   onSubmitEvent: (payload: CreateEventPayload) => Promise<string | null>;
 };
 
 export function DashboardPage({
-  totalEvents,
-  activePlans,
-  upcomingMilestones,
-  completedMilestones,
-  lifeProgress,
-  focusText,
-  userId,
-  quickUsers,
-  onUserChange,
-  upcomingEvents,
   onOpenEvent,
   onGoToPlans,
   onGoToTimeline,
   onGoToMemories,
   onGoToYear,
-  currentYear,
-  currentYearEvents,
-  activity,
   onSubmitEvent,
 }: Props) {
+  const { currentUser } = useAuth();
+  const {
+    totalEvents,
+    activePlansCount,
+    upcomingMilestonesCount,
+    completedMilestonesCount,
+    lifeProgress,
+    focusText,
+    upcomingEvents,
+    currentYear,
+    currentYearEvents,
+    activity,
+    isLoading,
+    error,
+  } = useDashboardData();
+
   return (
     <div className="view-stack">
+      {error && <p className="error panel">{error}</p>}
+      {isLoading && <p className="loading panel">Loading dashboard...</p>}
       <header className="hero panel">
         <div className="hero-copy-block">
           <p className="hero-kicker">Life planning timeline</p>
@@ -70,7 +63,7 @@ export function DashboardPage({
           </p>
           <div className="hero-tags">
             <span className="hero-tag">{totalEvents} plans mapped</span>
-            <span className="hero-tag">{completedMilestones} milestones completed</span>
+            <span className="hero-tag">{completedMilestonesCount} milestones completed</span>
             <span className="hero-tag">Life progress {lifeProgress}%</span>
           </div>
         </div>
@@ -90,26 +83,20 @@ export function DashboardPage({
           <h3>{focusText}</h3>
           <p className="section-copy">Keep the next chapter visible. Choose a plan, adjust it calmly, and let the larger life map stay coherent.</p>
           <div className="hero-controls">
-            <label>
-              Quick user
-              <select value={quickUsers.includes(userId) ? userId : "custom"} onChange={(e) => onUserChange(e.target.value === "custom" ? userId : e.target.value)}>
-                {quickUsers.map((u) => <option key={u} value={u}>{u}</option>)}
-                <option value="custom">custom</option>
-              </select>
-            </label>
-            <label>
-              User id
-              <input value={userId} onChange={(e) => onUserChange(e.target.value || "demo-user")} />
-            </label>
+            <div className="detail-card">
+              <p className="section-kicker">Signed in as</p>
+              <h4>{currentUser?.name}</h4>
+              <p>{currentUser?.email}</p>
+            </div>
           </div>
         </div>
       </header>
 
       <DashboardStatsRow
         totalEvents={totalEvents}
-        activePlans={activePlans}
-        upcomingMilestones={upcomingMilestones}
-        completedMilestones={completedMilestones}
+        activePlans={activePlansCount}
+        upcomingMilestones={upcomingMilestonesCount}
+        completedMilestones={completedMilestonesCount}
         lifeProgress={lifeProgress}
       />
 

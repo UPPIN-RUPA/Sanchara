@@ -1,12 +1,17 @@
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthLayout } from "../components/auth/AuthLayout";
 import { LoginForm } from "../components/auth/LoginForm";
+import { useAuth } from "../auth/useAuth";
 
-type Props = {
-  onLogin: () => void;
-  onSignup: () => void;
-};
+export function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, login } = useAuth();
 
-export function LoginPage({ onLogin, onSignup }: Props) {
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <AuthLayout
       eyebrow="Welcome back"
@@ -14,7 +19,18 @@ export function LoginPage({ onLogin, onSignup }: Props) {
       subtitle="Login to continue planning the future you are intentionally building."
       quote="Every future begins with a first step."
     >
-      <LoginForm onSubmit={onLogin} onSignup={onSignup} />
+      <LoginForm
+        onSubmit={async (payload) => {
+          try {
+            await login(payload);
+            navigate((location.state as { from?: string } | null)?.from ?? "/dashboard");
+            return null;
+          } catch (error) {
+            return error instanceof Error ? error.message : "Failed to log in.";
+          }
+        }}
+        onSignup={() => navigate("/signup")}
+      />
     </AuthLayout>
   );
 }

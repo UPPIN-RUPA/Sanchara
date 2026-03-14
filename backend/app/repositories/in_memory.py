@@ -2,6 +2,10 @@ from datetime import date, datetime, timezone
 from uuid import uuid4
 
 from app.models.event import Event, EventCreate, EventStatus, EventUpdate
+from app.models.event_update import EventUpdate as EventJournalUpdate, EventUpdateCreate, EventUpdateUpdate
+from app.models.memory import Memory, MemoryCreate, MemoryUpdate
+from app.models.task import Task, TaskCreate, TaskStatus, TaskUpdate
+from app.models.user import User, UserCreate
 from app.repositories.events import SortBy, SortOrder
 
 _PRIORITY_RANK = {"low": 1, "medium": 2, "high": 3, "critical": 4}
@@ -12,6 +16,8 @@ class InMemoryEventRepository:
 
     def __init__(self) -> None:
         self.events: dict[str, Event] = {}
+        self.tasks: dict[str, Task] = {}
+        self.memories: dict[str, Memory] = {}
 
     async def ensure_indexes(self) -> None:
         return None
@@ -147,3 +153,186 @@ class InMemoryEventRepository:
             "upcoming_financial_events": upcoming_financial_events,
             "next_years": next_years,
         }
+
+    async def create_task(self, event_id: str, user_id: str, payload: TaskCreate) -> Task:
+        now = datetime.now(timezone.utc)
+        task = Task(
+            id=str(uuid4()),
+            event_id=event_id,
+            user_id=user_id,
+            status=TaskStatus.pending,
+            created_at=now,
+            updated_at=now,
+            **payload.model_dump(),
+        )
+        self.tasks[task.id] = task
+        return task
+
+    async def list_tasks(self, event_id: str, user_id: str) -> list[Task]:
+        tasks = [
+            task
+            for task in self.tasks.values()
+            if task.event_id == event_id and task.user_id == user_id
+        ]
+        return sorted(
+            tasks,
+            key=lambda task: (task.status.value, task.due_date or date.max, task.created_at),
+        )
+
+    async def update_task(
+        self, event_id: str, user_id: str, task_id: str, payload: TaskUpdate
+    ) -> Task | None:
+        task = self.tasks.get(task_id)
+        if task is None or task.event_id != event_id or task.user_id != user_id:
+            return None
+        updated = task.model_copy(
+            update={
+                **payload.model_dump(exclude_unset=True),
+                "updated_at": datetime.now(timezone.utc),
+            }
+        )
+        self.tasks[task_id] = updated
+        return updated
+
+    async def delete_task(self, event_id: str, user_id: str, task_id: str) -> bool:
+        task = self.tasks.get(task_id)
+        if task is None or task.event_id != event_id or task.user_id != user_id:
+            return False
+        del self.tasks[task_id]
+        return True
+
+    async def create_memory(self, event_id: str, user_id: str, payload: MemoryCreate) -> Memory:
+        now = datetime.now(timezone.utc)
+        memory = Memory(
+            id=str(uuid4()),
+            event_id=event_id,
+            user_id=user_id,
+            created_at=now,
+            updated_at=now,
+            **payload.model_dump(),
+        )
+        self.memories[memory.id] = memory
+        return memory
+
+    async def list_memories(self, event_id: str, user_id: str) -> list[Memory]:
+        memories = [
+            memory
+            for memory in self.memories.values()
+            if memory.event_id == event_id and memory.user_id == user_id
+        ]
+        return sorted(
+            memories,
+            key=lambda memory: (memory.captured_on or date.min, memory.created_at),
+            reverse=True,
+        )
+
+    async def update_memory(
+        self, event_id: str, user_id: str, memory_id: str, payload: MemoryUpdate
+    ) -> Memory | None:
+        memory = self.memories.get(memory_id)
+        if memory is None or memory.event_id != event_id or memory.user_id != user_id:
+            return None
+        updated = memory.model_copy(
+            update={
+                **payload.model_dump(exclude_unset=True),
+                "updated_at": datetime.now(timezone.utc),
+            }
+        )
+        self.memories[memory_id] = updated
+        return updated
+
+    async def delete_memory(self, event_id: str, user_id: str, memory_id: str) -> bool:
+        memory = self.memories.get(memory_id)
+        if memory is None or memory.event_id != event_id or memory.user_id != user_id:
+            return False
+        del self.memories[memory_id]
+        return True
+
+
+class InMemoryEventUpdateRepository:
+    def __init__(self) -> None:
+        self.updates: dict[str, EventJournalUpdate] = {}
+
+    async def ensure_indexes(self) -> None:
+        return None
+
+    async def create_update(
+        self, event_id: str, user_id: str, payload: EventUpdateCreate
+    ) -> EventJournalUpdate:
+        now = datetime.now(timezone.utc)
+        update = EventJournalUpdate(
+            id=str(uuid4()),
+            event_id=event_id,
+            user_id=user_id,
+            created_at=now,
+            updated_at=now,
+            deleted_at=None,
+            **payload.model_dump(),
+        )
+        self.updates[update.id] = update
+        return update
+
+    async def list_updates(self, event_id: str, user_id: str) -> list[EventJournalUpdate]:
+        items = [
+            update
+            for update in self.updates.values()
+            if update.event_id == event_id and update.user_id == user_id and update.deleted_at is None
+        ]
+        return sorted(
+            items,
+            key=lambda update: (update.effective_date or update.created_at, update.created_at),
+            reverse=True,
+        )
+
+    async def update_update(
+        self, event_id: str, user_id: str, update_id: str, payload: EventUpdateUpdate
+    ) -> EventJournalUpdate | None:
+        update = self.updates.get(update_id)
+        if update is None or update.event_id != event_id or update.user_id != user_id or update.deleted_at is not None:
+            return None
+        updated = update.model_copy(
+            update={
+                **payload.model_dump(exclude_unset=True),
+                "updated_at": datetime.now(timezone.utc),
+            }
+        )
+        self.updates[update_id] = updated
+        return updated
+
+    async def delete_update(self, event_id: str, user_id: str, update_id: str) -> bool:
+        update = self.updates.get(update_id)
+        if update is None or update.event_id != event_id or update.user_id != user_id or update.deleted_at is not None:
+            return False
+        self.updates[update_id] = update.model_copy(
+            update={"deleted_at": datetime.now(timezone.utc), "updated_at": datetime.now(timezone.utc)}
+        )
+        return True
+
+
+class InMemoryUserRepository:
+    def __init__(self) -> None:
+        self.users: dict[str, User] = {}
+
+    async def ensure_indexes(self) -> None:
+        return None
+
+    async def create_user(self, payload: UserCreate) -> User:
+        now = datetime.now(timezone.utc)
+        user = User(
+            id=str(uuid4()),
+            created_at=now,
+            updated_at=now,
+            **payload.model_dump(),
+        )
+        self.users[user.id] = user
+        return user
+
+    async def get_user_by_email(self, email: str) -> User | None:
+        normalized = email.lower()
+        for user in self.users.values():
+            if user.email == normalized:
+                return user
+        return None
+
+    async def get_user_by_id(self, user_id: str) -> User | None:
+        return self.users.get(user_id)

@@ -9,10 +9,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.v1.routes_events import get_event_repository
+from app.api.v1.routes_event_updates import get_event_update_repository
 from app.api.v1.routes_tasks import get_task_repository
 from app.api.v1.routes_memories import get_memory_repository
 from app.main import app
 from app.models.event import Event, EventCreate, EventStatus, EventUpdate
+from app.models.event_update import EventUpdate as EventJournalUpdate, EventUpdateCreate, EventUpdateType, EventUpdateUpdate as EventJournalUpdateUpdate
 from app.models.task import Task, TaskCreate, TaskStatus, TaskUpdate
 from app.models.memory import Memory, MemoryCreate, MemoryType, MemoryUpdate
 
@@ -22,6 +24,7 @@ class InMemoryEventRepository:
         self.events: dict[str, Event] = {}
         self.tasks: dict[str, Task] = {}
         self.memories: dict[str, Memory] = {}
+        self.updates: dict[str, EventJournalUpdate] = {}
 
     async def ensure_indexes(self) -> None:
         return None
@@ -208,6 +211,50 @@ class InMemoryEventRepository:
         del self.memories[memory_id]
         return True
 
+    async def create_update(self, event_id: str, user_id: str, payload: EventUpdateCreate) -> EventJournalUpdate:
+        now = datetime.now(timezone.utc)
+        update = EventJournalUpdate(
+            id=str(uuid4()),
+            event_id=event_id,
+            user_id=user_id,
+            created_at=now,
+            updated_at=now,
+            deleted_at=None,
+            **payload.model_dump(),
+        )
+        self.updates[update.id] = update
+        return update
+
+    async def list_updates(self, event_id: str, user_id: str) -> list[EventJournalUpdate]:
+        items = [
+            update
+            for update in self.updates.values()
+            if update.event_id == event_id and update.user_id == user_id and update.deleted_at is None
+        ]
+        return sorted(items, key=lambda update: (update.effective_date or update.created_at, update.created_at), reverse=True)
+
+    async def update_update(
+        self, event_id: str, user_id: str, update_id: str, payload: EventJournalUpdateUpdate
+    ) -> EventJournalUpdate | None:
+        update = self.updates.get(update_id)
+        if update is None or update.event_id != event_id or update.user_id != user_id or update.deleted_at is not None:
+            return None
+        updated = update.model_copy(
+            update={
+                **payload.model_dump(exclude_unset=True),
+                "updated_at": datetime.now(timezone.utc),
+            }
+        )
+        self.updates[update_id] = updated
+        return updated
+
+    async def delete_update(self, event_id: str, user_id: str, update_id: str) -> bool:
+        update = self.updates.get(update_id)
+        if update is None or update.event_id != event_id or update.user_id != user_id or update.deleted_at is not None:
+            return False
+        self.updates[update_id] = update.model_copy(update={"deleted_at": datetime.now(timezone.utc), "updated_at": datetime.now(timezone.utc)})
+        return True
+
 
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
@@ -215,11 +262,14 @@ def client() -> Generator[TestClient, None, None]:
     app.dependency_overrides[get_event_repository] = lambda: repository
     app.dependency_overrides[get_task_repository] = lambda: repository
     app.dependency_overrides[get_memory_repository] = lambda: repository
+    app.dependency_overrides[get_event_update_repository] = lambda: repository
     app.state.events_repository = repository
     app.state.tasks_repository = repository
     app.state.memories_repository = repository
+    app.state.event_updates_repository = repository
 
     with TestClient(app) as test_client:
+        test_client.headers.update({"X-User-Id": "demo-user"})
         yield test_client
 
     app.dependency_overrides.clear()
@@ -328,6 +378,57 @@ def test_filter_pagination_and_sorting(client: TestClient) -> None:
     assert body["total"] == 3
     assert len(body["items"]) == 2
     assert body["items"][0]["title"] == "A Event"
+
+
+def test_event_updates_crud_and_soft_delete(client: TestClient) -> None:
+    create_event_response = client.post(
+        "/api/v1/events",
+        headers={"X-User-Id": "rupa"},
+        json=_event_payload("Journaled Plan", "2028-09-01", 10000),
+    )
+    event_id = create_event_response.json()["id"]
+
+    create_update_response = client.post(
+        f"/api/v1/events/{event_id}/updates",
+        headers={"X-User-Id": "rupa"},
+        json={
+            "title": "Visited the site",
+            "body": "The place finally felt real.",
+            "update_type": "journal",
+        },
+    )
+    assert create_update_response.status_code == 201
+    update_id = create_update_response.json()["id"]
+    assert create_update_response.json()["update_type"] == EventUpdateType.journal.value
+
+    list_updates_response = client.get(f"/api/v1/events/{event_id}/updates", headers={"X-User-Id": "rupa"})
+    assert list_updates_response.status_code == 200
+    assert len(list_updates_response.json()["items"]) == 1
+
+    patch_response = client.patch(
+        f"/api/v1/events/{event_id}/updates/{update_id}",
+        headers={"X-User-Id": "rupa"},
+        json={"title": "Visited the land", "update_type": "decision"},
+    )
+    assert patch_response.status_code == 200
+    assert patch_response.json()["title"] == "Visited the land"
+    assert patch_response.json()["update_type"] == EventUpdateType.decision.value
+
+    delete_response = client.delete(f"/api/v1/events/{event_id}/updates/{update_id}", headers={"X-User-Id": "rupa"})
+    assert delete_response.status_code == 204
+
+    list_after_delete = client.get(f"/api/v1/events/{event_id}/updates", headers={"X-User-Id": "rupa"})
+    assert list_after_delete.status_code == 200
+    assert list_after_delete.json()["items"] == []
+
+
+def test_event_updates_require_existing_event(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/events/missing-event/updates",
+        headers={"X-User-Id": "rupa"},
+        json={"title": "No parent", "body": "This should fail."},
+    )
+    assert response.status_code == 404
 
 
 def test_event_date_validation_and_financial_computed_fields(client: TestClient) -> None:

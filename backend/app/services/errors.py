@@ -1,2 +1,10 @@
 class ServiceValidationError(ValueError):
     """Raised when service-layer business rules are violated."""
+
+
+class AuthenticationError(ValueError):
+    """Raised when authentication fails."""
+
+
+class ConflictError(ValueError):
+    """Raised when a unique resource already exists."""

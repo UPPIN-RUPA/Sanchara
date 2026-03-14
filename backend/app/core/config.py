@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -14,6 +15,17 @@ class Settings(BaseSettings):
     mongo_collection_events: str = "events"
     mongo_collection_tasks: str = "tasks"
     mongo_collection_memories: str = "memories"
+    mongo_collection_event_updates: str = "event_updates"
+    mongo_collection_users: str = "users"
+
+    auth_secret_key: str = "change-me-in-production"
+    auth_access_token_ttl_minutes: int = 60 * 24 * 7
+    cors_allowed_origins: list[str] = Field(
+        default_factory=lambda: [
+            "http://127.0.0.1:5173",
+            "http://localhost:5173",
+        ]
+    )
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

@@ -19,7 +19,7 @@ type Props = {
   selectedEvent: EventItem | null;
   onSelect: (eventId: string) => void;
   onAddPlan: () => void;
-  onOpenFullDetails: (tab?: "overview" | "tasks" | "savings" | "memories" | "notes") => void;
+  onOpenFullDetails: (tab?: "overview" | "milestones" | "savings" | "memories" | "updates") => void;
   onOpenYear?: (year: number) => void;
 };
 

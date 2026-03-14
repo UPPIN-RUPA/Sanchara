@@ -13,10 +13,14 @@ export function EventOverview({ event }: Props) {
           <h3>The meaning and structure of this plan</h3>
         </div>
       </div>
-      <div className="detail-grid">
-        <article className="detail-card detail-card-wide">
+      <div className="detail-grid event-overview-grid">
+        <article className="detail-card detail-card-wide overview-story-card">
           <h4>Description</h4>
-          <p>{event.description || "No description yet."}</p>
+          <p>{event.description || "No description yet. Add a few lines that explain what this chapter is really about."}</p>
+        </article>
+        <article className="detail-card detail-card-wide overview-story-card">
+          <h4>Why this matters</h4>
+          <p>{event.notes || "No reflection saved yet. Use notes to explain why this plan deserves a place in your future map."}</p>
         </article>
         <article className="detail-card">
           <h4>Category</h4>
@@ -34,9 +38,21 @@ export function EventOverview({ event }: Props) {
           <h4>Target date</h4>
           <p>{event.end_date || "Open-ended"}</p>
         </article>
-        <article className="detail-card detail-card-wide">
-          <h4>Reflection</h4>
-          <p>{event.notes || event.timeline_phase || "No reflection saved yet."}</p>
+        <article className="detail-card">
+          <h4>Timeline phase</h4>
+          <p>{event.timeline_phase || "Not set"}</p>
+        </article>
+        <article className="detail-card">
+          <h4>Priority</h4>
+          <p>{event.priority}</p>
+        </article>
+        <article className="detail-card detail-card-wide overview-snapshot-card">
+          <h4>Snapshot</h4>
+          <p>
+            {event.is_financial
+              ? `This plan is financially tracked with ${event.savings_progress_pct ?? 0}% of the target funded so far.`
+              : "This plan is being tracked primarily as a milestone and life chapter, without a savings target attached yet."}
+          </p>
         </article>
       </div>
     </section>

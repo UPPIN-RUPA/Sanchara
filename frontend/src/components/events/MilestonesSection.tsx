@@ -41,7 +41,7 @@ export function MilestonesSection({ milestones, onAdd, onRemove, onChange }: Pro
             <button type="button" className="ghost-danger" onClick={() => onRemove(index)}>Remove</button>
           </article>
         ))}
-        {milestones.length === 0 && <p className="helper-text">No milestones yet. Add at least one step if the plan will unfold over time.</p>}
+        {milestones.length === 0 && <p className="helper-text">Milestones help turn a long-term dream into a journey you can actually follow.</p>}
       </div>
     </section>
   );

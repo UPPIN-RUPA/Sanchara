@@ -3,6 +3,7 @@ export type View =
   | "timeline"
   | "year"
   | "create-event"
+  | "edit-event"
   | "event-detail"
   | "plans"
   | "savings"

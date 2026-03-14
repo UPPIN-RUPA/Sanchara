@@ -9,8 +9,8 @@ export function ReflectionSection({ whyThisMatters, noteToFutureSelf, onChange }
     <section className="event-section-card panel reflection-card">
       <div className="section-heading">
         <div>
-          <p className="section-kicker">Reflection</p>
-          <h3>Give the plan emotional context</h3>
+          <p className="section-kicker">Why this matters</p>
+          <h3>Give this plan personal meaning</h3>
         </div>
         <p className="section-copy">This is the part that makes Sanchara feel human instead of transactional.</p>
       </div>

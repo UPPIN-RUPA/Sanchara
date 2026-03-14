@@ -1,34 +1,16 @@
+import { useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "../components/layout/PageHeader";
 import { YearEventsList } from "../components/year/YearEventsList";
 import { YearHeroCard } from "../components/year/YearHeroCard";
 import { YearProgressPanel } from "../components/year/YearProgressPanel";
 import { YearReflectionCard } from "../components/year/YearReflectionCard";
+import { useYearView } from "../hooks/useYearView";
 
-type YearEvent = {
-  id: string;
-  title: string;
-  category: string;
-  start_date: string;
-  status: string;
-  description?: string | null;
-  savings_target?: number | null;
-};
-
-type Props = {
-  year: number;
-  events: YearEvent[];
-  memoryCount: number;
-  onOpenEvent: (eventId: string) => void;
-};
-
-export function YearViewPage({ year, events, memoryCount, onOpenEvent }: Props) {
-  const completed = events.filter((event) => event.status === "completed").length;
-  const inProgress = events.filter((event) => event.status === "in-progress").length;
-  const savingsTarget = events.reduce((total, event) => total + (event.savings_target ?? 0), 0);
-  const summary = events[0]?.description
-    ? `A year shaped by ${events[0].description.toLowerCase()}.`
-    : `A year focused on ${events.length > 0 ? "important life milestones and long-term preparation." : "laying down a new chapter."}`;
-  const focus = events[0]?.title ?? "Define the main milestone for this year.";
+export function YearViewPage() {
+  const navigate = useNavigate();
+  const params = useParams();
+  const year = Number(params.year ?? new Date().getFullYear());
+  const { events, summary, isLoading, error } = useYearView({ year });
 
   return (
     <div className="view-stack">
@@ -37,18 +19,20 @@ export function YearViewPage({ year, events, memoryCount, onOpenEvent }: Props) 
         title={String(year)}
         subtitle="What this year contains in your life plan, and why it matters."
       />
-      <YearHeroCard year={year} summary={summary} bigFocus={focus} />
+      {error && <p className="error panel">{error}</p>}
+      {isLoading && <p className="loading panel">Loading year view...</p>}
+      <YearHeroCard year={year} summary={summary.heroSummary} bigFocus={summary.focus} />
       <div className="workspace-grid">
         <div className="view-stack">
-          <YearEventsList events={events} onOpenEvent={onOpenEvent} />
+          <YearEventsList events={events} onOpenEvent={(eventId) => navigate(`/plans/${eventId}`)} />
         </div>
         <div className="view-stack">
           <YearProgressPanel
-            totalPlans={events.length}
-            completed={completed}
-            inProgress={inProgress}
-            savingsTarget={savingsTarget}
-            memories={memoryCount}
+            totalPlans={summary.totalPlans}
+            completed={summary.completed}
+            inProgress={summary.inProgress}
+            savingsTarget={summary.savingsTarget}
+            memories={summary.memoryCount}
           />
         </div>
       </div>

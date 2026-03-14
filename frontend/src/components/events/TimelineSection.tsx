@@ -21,7 +21,7 @@ export function TimelineSection({ startDate, targetDate, timelinePhase, status, 
       <div className="section-heading">
         <div>
           <p className="section-kicker">Timeline placement</p>
-          <h3>Place the plan across time</h3>
+          <h3>Decide where this plan lives in your journey</h3>
         </div>
         <p className="section-copy">Give the plan a clear beginning, a target horizon, and the life phase it belongs to.</p>
       </div>
