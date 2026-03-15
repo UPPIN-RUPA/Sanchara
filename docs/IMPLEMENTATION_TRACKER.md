@@ -44,10 +44,10 @@ Validate the auth implementation at runtime and close Phase 3.1.
 
 **Likely files**
 
-- [backend/tests/test_auth.py](/Users/rupa_uppin/Documents/New project/Sanchara/backend/tests/test_auth.py)
-- [backend/app/api/v1/routes_auth.py](/Users/rupa_uppin/Documents/New project/Sanchara/backend/app/api/v1/routes_auth.py)
-- [backend/app/api/dependencies.py](/Users/rupa_uppin/Documents/New project/Sanchara/backend/app/api/dependencies.py)
-- [frontend/src/lib/api.ts](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/lib/api.ts)
+- [backend/tests/test_auth.py](../backend/tests/test_auth.py)
+- [backend/app/api/v1/routes_auth.py](../backend/app/api/v1/routes_auth.py)
+- [backend/app/api/dependencies.py](../backend/app/api/dependencies.py)
+- [frontend/src/lib/api.ts](../frontend/src/lib/api.ts)
 
 **Verification**
 
@@ -82,11 +82,11 @@ Tighten session UX and remove leftover identity cleanup items.
 
 **Likely files**
 
-- [frontend/src/auth/AuthProvider.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/auth/AuthProvider.tsx)
-- [frontend/src/auth/ProtectedRoute.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/auth/ProtectedRoute.tsx)
-- [frontend/src/pages/AppWorkspace.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/pages/AppWorkspace.tsx)
-- [frontend/src/pages/DashboardPage.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/pages/DashboardPage.tsx)
-- [frontend/src/pages/LoginPage.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/pages/LoginPage.tsx)
+- [frontend/src/auth/AuthProvider.tsx](../frontend/src/auth/AuthProvider.tsx)
+- [frontend/src/auth/ProtectedRoute.tsx](../frontend/src/auth/ProtectedRoute.tsx)
+- [frontend/src/pages/AppWorkspace.tsx](../frontend/src/pages/AppWorkspace.tsx)
+- [frontend/src/pages/DashboardPage.tsx](../frontend/src/pages/DashboardPage.tsx)
+- [frontend/src/pages/LoginPage.tsx](../frontend/src/pages/LoginPage.tsx)
 
 **Verification**
 
@@ -119,13 +119,13 @@ Add the first real asset pipeline for memories on the backend.
 
 **Likely files**
 
-- [backend/app/api/v1/routes_memories.py](/Users/rupa_uppin/Documents/New project/Sanchara/backend/app/api/v1/routes_memories.py)
-- [backend/app/api/v1/routes_uploads.py](/Users/rupa_uppin/Documents/New project/Sanchara/backend/app/api/v1/routes_uploads.py)
-- [backend/app/services/memory_service.py](/Users/rupa_uppin/Documents/New project/Sanchara/backend/app/services/memory_service.py)
-- [backend/app/services/storage_service.py](/Users/rupa_uppin/Documents/New project/Sanchara/backend/app/services/storage_service.py)
-- [backend/app/models/memory.py](/Users/rupa_uppin/Documents/New project/Sanchara/backend/app/models/memory.py)
-- [backend/app/core/config.py](/Users/rupa_uppin/Documents/New project/Sanchara/backend/app/core/config.py)
-- [backend/app/main.py](/Users/rupa_uppin/Documents/New project/Sanchara/backend/app/main.py)
+- [backend/app/api/v1/routes_memories.py](../backend/app/api/v1/routes_memories.py)
+- [backend/app/api/v1/routes_uploads.py](../backend/app/api/v1/routes_uploads.py)
+- [backend/app/services/memory_service.py](../backend/app/services/memory_service.py)
+- [backend/app/services/storage_service.py](../backend/app/services/storage_service.py)
+- [backend/app/models/memory.py](../backend/app/models/memory.py)
+- [backend/app/core/config.py](../backend/app/core/config.py)
+- [backend/app/main.py](../backend/app/main.py)
 
 **Verification**
 
@@ -160,11 +160,11 @@ Make memory creation and editing support real uploaded assets in the main produc
 
 **Likely files**
 
-- [frontend/src/components/events/MemoryEditor.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/components/events/MemoryEditor.tsx)
-- [frontend/src/components/events/EventMemories.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/components/events/EventMemories.tsx)
-- [frontend/src/lib/api.ts](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/lib/api.ts)
-- [frontend/src/pages/EventDetailPage.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/pages/EventDetailPage.tsx)
-- [frontend/src/components/events/AddMemoryForm.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/components/events/AddMemoryForm.tsx)
+- [frontend/src/components/events/MemoryEditor.tsx](../frontend/src/components/events/MemoryEditor.tsx)
+- [frontend/src/components/events/EventMemories.tsx](../frontend/src/components/events/EventMemories.tsx)
+- [frontend/src/lib/api.ts](../frontend/src/lib/api.ts)
+- [frontend/src/pages/EventDetailPage.tsx](../frontend/src/pages/EventDetailPage.tsx)
+- [frontend/src/components/events/AddMemoryForm.tsx](../frontend/src/components/events/AddMemoryForm.tsx)
 
 **Verification**
 
@@ -206,8 +206,8 @@ Deepen search into a stronger route-owned workflow.
 
 **Likely files**
 
-- [frontend/src/hooks/useSearchData.ts](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/hooks/useSearchData.ts)
-- [frontend/src/pages/SearchPage.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/pages/SearchPage.tsx)
+- [frontend/src/hooks/useSearchData.ts](../frontend/src/hooks/useSearchData.ts)
+- [frontend/src/pages/SearchPage.tsx](../frontend/src/pages/SearchPage.tsx)
 
 **Verification**
 
@@ -233,8 +233,8 @@ Make archive feel like completed chapters, not just filtered plans.
 
 **Likely files**
 
-- [frontend/src/hooks/useArchiveData.ts](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/hooks/useArchiveData.ts)
-- [frontend/src/pages/ArchivePage.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/pages/ArchivePage.tsx)
+- [frontend/src/hooks/useArchiveData.ts](../frontend/src/hooks/useArchiveData.ts)
+- [frontend/src/pages/ArchivePage.tsx](../frontend/src/pages/ArchivePage.tsx)
 
 **Verification**
 
@@ -259,9 +259,9 @@ Expand savings from summary into a richer readiness workflow.
 
 **Likely files**
 
-- [frontend/src/hooks/useSavingsData.ts](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/hooks/useSavingsData.ts)
-- [frontend/src/pages/SavingsPage.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/pages/SavingsPage.tsx)
-- [frontend/src/components/events/SavingsEditor.tsx](/Users/rupa_uppin/Documents/New project/Sanchara/frontend/src/components/events/SavingsEditor.tsx)
+- [frontend/src/hooks/useSavingsData.ts](../frontend/src/hooks/useSavingsData.ts)
+- [frontend/src/pages/SavingsPage.tsx](../frontend/src/pages/SavingsPage.tsx)
+- [frontend/src/components/events/SavingsEditor.tsx](../frontend/src/components/events/SavingsEditor.tsx)
 
 **Verification**
 
